@@ -1,0 +1,64 @@
+\documentclass[10pt, twocolumn]{article}
+
+\usepackage[pdftex]{graphicx}
+\usepackage{fullpage}
+
+
+
+\title{Lab Rotation Proposal}
+\author{Valentin H\"anel \\ \small Bernstein Center for
+Computational Neuroscience Berlin}    
+
+\date{\today}
+
+\begin{document} \maketitle
+
+\section{Overview}
+
+Going from extracellularly recorded spike trains to spiking neuronal
+models has been a topic of research during the last few years. One
+example is a poisson spike generator as described in
+\cite{DayanAbbott} or \cite{BerryMeister}. However this simple model
+does not allow for an estimation of the membrane potential. An
+alternative technique based around the leaky integrate and fire mode
+has been proposed in \cite{PaninskiPillowSimoncelli}. This  uses a maximum
+likelihood based technique and due to the nature of the model does
+allow for an estimation of membrane potential.
+Furthermore in \cite{PaninskiHaithSzirtes} a slightly better model is
+proposed.WHY IS IT BETTER.
+
+The first proposed goal of the lab rotation is to implement the
+techniques described for the integrate and fire model,
+\cite{PaninskiHaithSzirtes} and use it fit the experimental data
+recorded by Bartosz. INSERT ADDITIONAL DETAIL 
+
+The second proposed goal of the lab rotation is to lay the foundations
+for a modeling framework written in python. This should allow the
+neuroscientist to input a model and its objective function, and have the framework 
+take care of fitting and assessment of the quality of the fit.
+
+The third proposed goal of the lab rotation is to implement the simple
+poisson spike generator within the proposed framework and then compare
+how appropriate both models are for the experimental data gathered.
+Cross examination of models, where the simulation output of one model
+is the input for the fitting of another, is an option. 
+
+\section{Time Requirements}
+
+Due to additional constraints imposed by courses on advanced topics
+and a job as student assistant, a total of approximately 3 working
+days per week will be spent on the Lab rotation.
+
+Additional reading of textbooks and journal papers and preparation of
+the proposal took 3 weeks. From 10.11.08 to the 28.11.08.
+
+The official start of the lab rotation according to the TU Examination
+office was 24.11.08.
+
+Each proposed goal should take around 3 weeks, and therefore the
+proposed end of the lab rotation is end of January.
+
+\bibliography{proposal}{ \bibliographystyle{plain} }
+
+\end{document}
+
