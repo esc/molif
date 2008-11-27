@@ -5,13 +5,12 @@ pdf :
 	pdflatex proposal.tex
 
 clean : 
-	rm -v *.nav *.out *.toc *.aux *.snm *.log *.pdf *.tgz *.bbl *.blg
+	rm -rfv *.nav *.out *.toc *.aux *.snm *.log *.pdf *.tgz *.bbl *.blg proposal
 
-src : 
+src :
+	which cp
 	mkdir proposal ; 
-		cp proposal.tex \
-		makefile \
-		-t proposal ; 
+	cp proposal.tex makefile proposal.bib proposal ; 
 	tar cvzf proposal.src.tgz proposal/ ; 
 	rm -rvf proposal/ ; 
 
