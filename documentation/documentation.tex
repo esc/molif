@@ -1,0 +1,64 @@
+\documentclass[10pt]{article}
+\usepackage[pdftex]{graphicx}
+\usepackage{amssymb, amsmath}
+
+
+\begin{document} 
+
+\section{Equations}
+
+We need to solve the following fokker-planck diffusion equation
+numerically.
+
+\begin{equation}
+    \frac{\partial P(V,t)}{\partial t} =
+    \frac{1}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
+    g\frac{\partial[(V-V_{rest})]P(V,t)}{\partial V}
+\end{equation}
+
+Given the boundary conditions:
+
+We can rewrite this as:
+
+\begin{equation}
+    \frac{1}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
+    g(V-V_{rest})\frac{\partial P(V,t)}{\partial V} +
+    gP(V,t) -
+    \frac{\partial P(V,t)}{\partial t} = 
+    0
+\end{equation}
+
+Since we know that $ V-V_{rest} = 0 $
+
+Next we discretize time and potential. Time is discretized  into $U$
+intervals of length $u$ and indexed by: $ 0,1, \dots \tau $ Potential
+is discretized into $W$ intervals of length $w$ and indexed by $ 0,1,
+\dots \nu $. We adopt the notation that $P_{\nu,\tau} = P(\nu,\tau)$ 
+
+Using the crank-nicolson scheme we  may now rewrite the derivatives as:
+
+\begin{equation}
+    P = \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2}
+\end{equation}
+
+\begin{equation}
+    \frac{\partial P}{\partial t} = \frac{P_{\nu,\tau +1 } -
+    P_{\nu,\tau}}{u}
+\end{equation}
+
+\begin{equation}
+    \frac{\partial P}{\partial V} = 
+    \frac{P_{\nu +1,\tau } + P_{\nu +1,\tau +1 } -
+    P_{\nu - 1,\tau } P_{\nu -1,\tau +1}}
+    {4w}
+\end{equation}
+
+\begin{equation}
+    \frac{\partial^2 P}{\partial V^2} = 
+    \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau} +
+    P_{\nu+1,\tau+1} - 2 P_{\nu,\tau+1} + P_{\nu-1,\tau+1}}
+    {2w^2}
+\end{equation}
+
+
+\end{document}
