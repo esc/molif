@@ -1,17 +1,26 @@
 \documentclass[10pt]{article}
 \usepackage[pdftex]{graphicx}
 \usepackage{amssymb, amsmath}
+
 \usepackage{fullpage}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{\baselineskip}
-
-
 
 \begin{document} 
 
 \section{Equations}
 
-We need to solve the following fokker-planck diffusion equation
+If we define
+
+\begin{equation}
+    P(V,t) \equiv P(V(t) \cap  V(s) < V_{th} \forall s < t)
+\end{equation}
+
+Informally This refers to the probability of $V(t)$, the membrane potential,
+being less than $V_{th}$ the firing threshold until time $t$.  
+
+
+We need to solve the following fokker-planck drift diffusion equation
 numerically.
 
 \begin{equation}
@@ -21,6 +30,17 @@ numerically.
 \end{equation}
 
 Given the boundary conditions:
+
+\begin{equation}
+    P(V_{th},t) = 0
+\end{equation}
+
+\begin{equation}
+    P(V,0) = \delta(V-V_{reset})
+\end{equation}
+
+And the definition of V-rest.
+
 
 We can rewrite this as:
 
@@ -39,36 +59,55 @@ intervals of length $u$ and indexed by: $ 0,1, \dots \tau $ Potential
 is discretized into $W$ intervals of length $w$ and indexed by $ 0,1,
 \dots \nu $. We adopt the notation that $P_{\nu,\tau} = P(\nu,\tau)$ 
 
-Using the crank-nicolson scheme we  may now rewrite the derivatives as:
+Using the Crank-Nicolson scheme we  may now rewrite the derivatives as:
 
-\begin{align*}
+\begin{equation}
+    P = \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2}
+\end{equation}
 
-%\begin{equation}
-    P &= \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2} \\
-%\end{equation}
+\begin{equation}
+    \frac{\partial P}{\partial t} = \frac{P_{\nu,\tau +1 } -
+    P_{\nu,\tau}}{u}
+\end{equation}
 
-
-%\begin{equation}
-    \frac{\partial P}{\partial t} &= \frac{P_{\nu,\tau +1 } - P_{\nu,\tau}}{u} 
-%\end{equation}
-
-
-%\begin{equation}
-    \frac{\partial P}{\partial V} &= 
+\begin{equation}
+    \frac{\partial P}{\partial V} = 
     \frac{P_{\nu +1,\tau } + P_{\nu +1,\tau +1 } -
-    P_{\nu - 1,\tau } P_{\nu -1,\tau +1}} 
+    P_{\nu - 1,\tau } P_{\nu -1,\tau +1}}
     {4w}
-%\end{equation}
+\end{equation}
 
-
-%\begin{equation}
-    \frac{\partial^2 P}{\partial V^2} &= 
+\begin{equation}
+    \frac{\partial^2 P}{\partial V^2} = 
     \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau} +
     P_{\nu+1,\tau+1} - 2 P_{\nu,\tau+1} + P_{\nu-1,\tau+1}}
-    {2w^2} 
-%\end{equation}
+    {2w^2}
+\end{equation}
 
+if we now let:
+
+\begin{align*}
+a &= \frac{1}{2} \\
+b &= g(V - V_{rest}) \\
+c &= g \\
 \end{align*}
+
+and multiply throughout with $4w^2u$
+
+we may rearrange all the $P_{*,\tau+1} $ terms on the left hand side
+
+\begin{multline}
+    \overbrace{-(2au+bwu)} P_{\nu+1,\tau+1} + 
+    \overbrace{(4au - 2cw^2u + 4w^2)} P_{\nu,\tau+1} 
+    \overbrace{-(2au-bwu)} P_{\nu-1,\tau+1} 
+    =  \\
+    (2au+bwu) P_{\nu+1,\tau} +  
+    (-4au +i  2cw^2u + 4w^2) P_{\nu,\tau} + 
+    (2au-bwu) P_{\nu-1,\tau} 
+\end{multline}
+
+We note here that we have obtained $W-1$ simultaneous equations which
+we may now rewrite in the following tridiagonal matrix notation.
 
 
 
