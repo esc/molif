@@ -1,6 +1,10 @@
 \documentclass[10pt]{article}
 \usepackage[pdftex]{graphicx}
 \usepackage{amssymb, amsmath}
+\usepackage{fullpage}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{\baselineskip}
+
 
 
 \begin{document} 
@@ -37,28 +41,35 @@ is discretized into $W$ intervals of length $w$ and indexed by $ 0,1,
 
 Using the crank-nicolson scheme we  may now rewrite the derivatives as:
 
-\begin{equation}
-    P = \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2}
-\end{equation}
+\begin{align*}
 
-\begin{equation}
-    \frac{\partial P}{\partial t} = \frac{P_{\nu,\tau +1 } -
-    P_{\nu,\tau}}{u}
-\end{equation}
+%\begin{equation}
+    P &= \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2} \\
+%\end{equation}
 
-\begin{equation}
-    \frac{\partial P}{\partial V} = 
+
+%\begin{equation}
+    \frac{\partial P}{\partial t} &= \frac{P_{\nu,\tau +1 } - P_{\nu,\tau}}{u} 
+%\end{equation}
+
+
+%\begin{equation}
+    \frac{\partial P}{\partial V} &= 
     \frac{P_{\nu +1,\tau } + P_{\nu +1,\tau +1 } -
-    P_{\nu - 1,\tau } P_{\nu -1,\tau +1}}
+    P_{\nu - 1,\tau } P_{\nu -1,\tau +1}} 
     {4w}
-\end{equation}
+%\end{equation}
 
-\begin{equation}
-    \frac{\partial^2 P}{\partial V^2} = 
+
+%\begin{equation}
+    \frac{\partial^2 P}{\partial V^2} &= 
     \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau} +
     P_{\nu+1,\tau+1} - 2 P_{\nu,\tau+1} + P_{\nu-1,\tau+1}}
-    {2w^2}
-\end{equation}
+    {2w^2} 
+%\end{equation}
+
+\end{align*}
+
 
 
 \end{document}
