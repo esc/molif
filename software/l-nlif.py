@@ -16,16 +16,16 @@ class lnlif:
         self.spikes = [0]
 
         # number of time slots to integrate until
-        self.t_max = 100000
+        self.t_max = 1000
 
         # leak reversal potential : milli Volt
-        self.V_leak = -80 
+        self.V_leak = 0.9
         # membrane leak conductance : siemens
-        self.g =  1.e-4
+        self.g =  1.e-2
         # reset voltage : milli Volt
-        self.V_reset = -80
+        self.V_reset = 0
         # potential voltage : milli Volt
-        self.V_threshold = -54
+        self.V_threshold = 1
 
         # model of the stimulus as a vector : milli Ampere
         self.stim = zeros(self.t_max) 
@@ -49,7 +49,7 @@ class lnlif:
 
     def set_depolarizing_h(self):
         tmp = arange(0,self.t_max/5,0.1)
-        self.h = 1/exp(tmp)
+        self.h = 0.1 * 1/exp(tmp)
 
     def set_const_h(self):
         tmp = arange(0,self.t_max/5,0.1)
@@ -57,7 +57,7 @@ class lnlif:
 
     def set_hyperdepolarizing_h(self):
         tmp = arange(0,self.t_max/5,0.1)
-        self.h = -1/exp(tmp)
+        self.h =  0.1 * -1/exp(tmp)
 
     def reset_spikes(self):
         self.spikes = [0]
@@ -104,14 +104,17 @@ lif.set_const_input(0.01); # set constant input
 lif.i_stim = lif.stim # setup stimulus
 # lif.set_convolved_input();
 lif.set_const_h();
-time, potential = lif.euler(-80,1)
+
+dt = 1
+
+time, potential = lif.euler(lif.V_reset,dt)
 
 subplot(3,2,1), plot(time,potential), title('const h')
 subplot(3,2,2), plot(lif.h[1:200])
 
 lif.reset_spikes()
 lif.set_depolarizing_h();
-time, potential = lif.euler(-80,1)
+time, potential = lif.euler(lif.V_reset,dt)
 
 subplot(3,2,3), plot(time,potential), title('depolarizing h')
 subplot(3,2,4), plot(lif.h[1:200])
@@ -119,7 +122,7 @@ subplot(3,2,4), plot(lif.h[1:200])
 
 lif.reset_spikes()
 lif.set_hyperdepolarizing_h();
-time, potential = lif.euler(-80,1)
+time, potential = lif.euler(lif.V_reset,dt)
 
 subplot(3,2,5), plot(time,potential), title('depolarizing h')
 subplot(3,2,6), plot(lif.h[1:200])
