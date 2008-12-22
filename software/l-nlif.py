@@ -29,7 +29,11 @@ class lnlif:
 
         # model of the stimulus as a vector : milli Ampere
         self.stim = zeros(self.t_max) 
-        #noise = rand(t_max)
+
+        # st.d. of the gaussian white noise process.
+        self.sigma = 0.02
+        self.noise = False
+        self.h_scale = 0.05
 
         # spationtemporal linear kernel
         # in this case modeled as a difference of gaussians
@@ -49,7 +53,7 @@ class lnlif:
 
     def set_depolarizing_h(self):
         tmp = arange(0,self.t_max/5,0.1)
-        self.h = 0.1 * 1/exp(tmp)
+        self.h = self.h_scale * 1/exp(tmp)
 
     def set_const_h(self):
         tmp = arange(0,self.t_max/5,0.1)
@@ -57,10 +61,11 @@ class lnlif:
 
     def set_hyperdepolarizing_h(self):
         tmp = arange(0,self.t_max/5,0.1)
-        self.h =  0.1 * -1/exp(tmp)
+        self.h =  self.h_scale * -1/exp(tmp)
 
     def reset_spikes(self):
         self.spikes = [0]
+
 
     def set_convolved_input(self):
         """ setup the input convolved with the linear filter"""
@@ -80,6 +85,13 @@ class lnlif:
         # model
         return self.h[t-self.spikes[-1]]
 
+    def add_noise(self, dt):
+        """ gaussian additive white noise"""
+        if (self.noise):
+            return self.sigma * sqrt(dt) * random.randn();
+        else:
+            return 0
+
 
     def euler(self, x_0, dt):
         """ euler method for for solving ODEs
@@ -95,7 +107,9 @@ class lnlif:
                 self.spikes.append(i)
                 potential[i] = self.V_reset;
             else:
-                potential[i] = potential[i-1] + lif.integrate(potential[i-1],time[i-1]) * dt #+ noise[i]
+                potential[i] = potential[i-1] + \
+                self.integrate(potential[i-1],time[i-1]) * dt + \
+                self.add_noise(dt)
         return (time, potential)
 
 
@@ -103,8 +117,10 @@ lif = lnlif() # init model
 lif.set_const_input(0.01); # set constant input
 lif.i_stim = lif.stim # setup stimulus
 # lif.set_convolved_input();
+lif.noise = True
 lif.set_const_h();
 
+# FIXME this cannot be set to something else
 dt = 1
 
 time, potential = lif.euler(lif.V_reset,dt)
