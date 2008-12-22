@@ -15,12 +15,11 @@ If we define
 \begin{equation}
     P(V,t) \equiv P(V(t) \cap  V(s) < V_{th} \forall s < t)
 \end{equation}
-
-Informally This refers to the probability of $V(t)$, the membrane potential,
+This refers to the probability of $V(t)$, the membrane potential,
 being less than $V_{th}$ the firing threshold until time $t$.  
 
 
-We need to solve the following fokker-planck drift diffusion equation
+We need to solve the following Fokker-Planck drift diffusion equation
 numerically.
 
 \begin{equation}
@@ -57,22 +56,32 @@ We can rewrite this as:
 
 Since we know that $ V-V_{rest} = 0 $
 
+% Note: Some mistakes - compare with diff!
+
 Next we discretize time and potential. Time is discretized  into $U$
-intervals of length $u$ and indexed by: $ 0,1, \dots \tau $ Potential
-is discretized into $W$ intervals of length $w$ and indexed by $ 0,1,
-\dots \nu $. We adopt the notation that $P_{\nu,\tau} = P(\nu,\tau)$ 
+intervals of length $u$ and indexed by: $\nu= 0,1, \dots U $ Potential
+is discretized into $W$ intervals of length $w$ and indexed by $\tau= 0,1,
+\dots W $. We adopt the notation that $P_{\nu,\tau} = P(\nu u,\tau w)$ 
 
 Using the Crank-Nicolson scheme we  may now rewrite the derivatives as:
+
+% Note: need to introduce other notation for P otherwise you cannot
+% distinguish between the new and old one
 
 \begin{equation}
     P = \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2}
 \end{equation}
 
+% Note 1: This is only an approximation of the derivative - you need to 
+%         note it
+% Note 2: How do you define your finite differencing scheme? (ex. df/dt=(f(t+h)-f(t))/h)
 \begin{equation}
     \frac{\partial P}{\partial t} = \frac{P_{\nu,\tau +1 } -
     P_{\nu,\tau}}{u}
 \end{equation}
 
+% Note: an operator (plus or minus) is missing; where does the 4 come from (shouldn't
+%       it be a 2)
 \begin{equation}
     \frac{\partial P}{\partial V} = 
     \frac{P_{\nu +1,\tau } + P_{\nu +1,\tau +1 } -
