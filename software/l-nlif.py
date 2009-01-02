@@ -1,12 +1,8 @@
+#!/usr/bin/env python
+#coding=utf-8
+
 from pylab import *
 from scipy import *
-
-# TODO:
-# Add noise, at the moment it will have the same response
-# the noise should be gaussian.
-# what to do about the stimulus what should it be
-# what would be a linear filter, a.k.a. kernel
-# what about the I_hist, i don't even know what this should look like.
 
 
 class lnlif:
@@ -17,6 +13,7 @@ class lnlif:
 
         # number of time slots to integrate until
         self.t_max = 1000
+        self.dt = 1
 
         # leak reversal potential : milli Volt
         self.V_leak = 0.9
@@ -33,7 +30,7 @@ class lnlif:
         # st.d. of the gaussian white noise process.
         self.sigma = 0.02
         self.noise = False
-        self.h_scale = 0.05
+        self.h_scale = 0.5
 
         # spationtemporal linear kernel
         # in this case modeled as a difference of gaussians
@@ -42,6 +39,7 @@ class lnlif:
         pos = stats.distributions.norm_gen.pdf(n,x,loc=0)
         neg = stats.distributions.norm_gen.pdf(n,x,loc=-4,scale=2)
         self.k = ( pos - neg)
+        
 
     def set_rand_input(self):
         """ random input current """
@@ -52,16 +50,16 @@ class lnlif:
         self.stim[:] = current
 
     def set_depolarizing_h(self):
-        tmp = arange(0,self.t_max/5,0.1)
-        self.h = self.h_scale * 1/exp(tmp)
+        self.h = self.h_scale * 1/exp(self.get_time())
 
     def set_const_h(self):
-        tmp = arange(0,self.t_max/5,0.1)
-        self.h = zeros(len(tmp))
+        self.h = zeros(len(self.get_time()))
 
     def set_hyperdepolarizing_h(self):
-        tmp = arange(0,self.t_max/5,0.1)
-        self.h =  self.h_scale * -1/exp(tmp)
+        self.h =  self.h_scale * -1/exp(self.get_time())
+
+    def get_time(self):
+        return arange(0,self.t_max/self.dt,self.dt)
 
     def reset_spikes(self):
         self.spikes = [0]
@@ -93,23 +91,23 @@ class lnlif:
             return 0
 
 
-    def euler(self, x_0, dt):
+    def euler(self, x_0):
         """ euler method for for solving ODEs
         lif - a class that implements the integrate(x,t) function
         x_0 initial value for x
         t_max maximum time
         dt change in time """
-        potential = zeros(self.t_max/dt)
+        potential = zeros(self.t_max/self.dt)
         potential[0] = x_0 
-        time = arange(0,self.t_max,dt)
-        for i in xrange (1,int(self.t_max/dt)):
+        time = arange(0,self.t_max,self.dt)
+        for i in xrange (1,int(self.t_max/self.dt)):
             if potential[i-1] >= self.V_threshold:
                 self.spikes.append(i)
                 potential[i] = self.V_reset;
             else:
                 potential[i] = potential[i-1] + \
-                self.integrate(potential[i-1],time[i-1]) * dt + \
-                self.add_noise(dt)
+                self.integrate(potential[i-1],time[i-1]) * self.dt + \
+                self.add_noise(self.dt)
         return (time, potential)
 
 
@@ -120,28 +118,27 @@ lif.i_stim = lif.stim # setup stimulus
 lif.noise = True
 lif.set_const_h();
 
-# FIXME this cannot be set to something else
-dt = 1
 
-time, potential = lif.euler(lif.V_reset,dt)
+
+time, potential = lif.euler(lif.V_reset)
 
 subplot(3,2,1), plot(time,potential), title('const h')
-subplot(3,2,2), plot(lif.h[1:200])
+subplot(3,2,2), plot(lif.h)
 
 lif.reset_spikes()
 lif.set_depolarizing_h();
-time, potential = lif.euler(lif.V_reset,dt)
+time, potential = lif.euler(lif.V_reset)
 
 subplot(3,2,3), plot(time,potential), title('depolarizing h')
-subplot(3,2,4), plot(lif.h[1:200])
+subplot(3,2,4), plot(lif.h)
 
 
 lif.reset_spikes()
 lif.set_hyperdepolarizing_h();
-time, potential = lif.euler(lif.V_reset,dt)
+time, potential = lif.euler(lif.V_reset)
 
 subplot(3,2,5), plot(time,potential), title('depolarizing h')
-subplot(3,2,6), plot(lif.h[1:200])
+subplot(3,2,6), plot(lif.h)
 
 print len(lif.h)
 
