@@ -2,8 +2,6 @@ from pylab import *
 from scipy import *
 
 # TODO:
-# Add noise, at the moment it will have the same response
-# the noise should be gaussian.
 # what to do about the stimulus what should it be
 # what would be a linear filter, a.k.a. kernel
 # what about the I_hist, i don't even know what this should look like.
