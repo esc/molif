@@ -172,46 +172,57 @@ and multiply throughout with $4w^2u$
 we may rearrange all the $P_{*,\tau+1} $ terms on the left hand side:
 
 \begin{multline}
-    \overbrace{-(2au+bwu)}^{A_i} P_{\nu+1,\tau+1} + 
-    \overbrace{(4au - 2cw^2u + 4w^2)}^{B_i} P_{\nu,\tau+1}
-    \overbrace{-(2au-bwu)}^{C_i} P_{\nu-1,\tau+1}
+    \overbrace{-(2au+bwu)}^{A_\nu} P_{\nu+1,\tau+1} + 
+    \overbrace{(4au - 2cw^2u + 4w^2)}^{B_\nu} P_{\nu,\tau+1}
+    \overbrace{-(2au-bwu)}^{C_\nu} P_{\nu-1,\tau+1}
     =  \\
     \underbrace{(2au+bwu) P_{\nu+1,\tau} +  
     (-4au +i  2cw^2u + 4w^2) P_{\nu,\tau} + 
-    (2au-bwu) P_{\nu-1,\tau}}_{D_i}
+    (2au-bwu) P_{\nu-1,\tau}}_{D_{\nu}}
 \end{multline}
 
-For each $ \nu = 1 , \dots , I-1 $
+For each $ \nu = 1 , \dots , W-1 $
 
 We note here that we have obtained $W-1$ simultaneous equations which
 we may now rewrite in the following tridiagonal matrix notation.
 
+
 \begin{equation}
+\underbrace{
 \begin{pmatrix}
     B_0    & A_0   & 0      & 0      & \cdots  & 0       \\
     C_1    & B_1   & A_1    & 0      & \cdots  & 0       \\
     0      & C_2   & B_2    & A_2    & 0      &         \\
     \vdots &       & \ddots & \ddots & \ddots & \vdots  \\
-    0      & \cdots & 0      & C_{I-1}& B_{I-1}& A_{I-1} \\
-    0      & \cdots &        & 0      & C_I    & B_I     \\
-\end{pmatrix} 
+    0      & \cdots & 0      & C_{W-1}& B_{W-1}& A_{W-1} \\
+    0      & \cdots &        & 0      & C_W    & B_W     \\
+\end{pmatrix}}_{\Lambda}
+\underbrace{
 \begin{pmatrix}
     P_{0,\tau+1}   \\
     P_{1,\tau+1}   \\
     P_{2,\tau+1}   \\
     \vdots         \\
-    P_{I-1,\tau+1} \\
-    P_{I,\tau+1}   \\
-\end{pmatrix}
+    P_{W-1,\tau+1} \\
+    P_{W,\tau+1}   \\
+\end{pmatrix}}_{\chi}
 =
+\underbrace{
 \begin{pmatrix}
     D_0     \\
     D_1     \\
     D_2     \\
     \vdots  \\
-    D_{I-1} \\
-    D_I     \\
-\end{pmatrix}
+    D_{W-1} \\
+    D_W     \\
+\end{pmatrix}}_{\beta}
 \end{equation}
+
+
+
+However this matrix equation has W+1 equations, so we must use the
+boundary conditions to specify the first and last rows of $\Lambda$.
+We can then use a tridiagonal matrix algorithm to solve $\Lambda \chi
+= \beta$
 
 \end{document}

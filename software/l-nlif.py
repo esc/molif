@@ -17,7 +17,7 @@ class lnlif:
         # leak reversal potential : milli Volt
         self.V_leak = 0.9
         # membrane leak conductance : siemens
-        self.g =  1.e-2
+        self.g = 1.e-2
         # reset voltage : milli Volt
         self.V_reset = 0
         # potential voltage : milli Volt
@@ -109,6 +109,8 @@ class lnlif:
                 self.add_noise(self.dt)
         return (self.time, self.potential)
 
+    def V_rest(self,t):
+        return self.V_leak + 
 
 def pde_solver(lif,W,U,V_lb):
     # lif provides voltage trace, time, stimulus, threshold, an
@@ -124,12 +126,30 @@ def pde_solver(lif,W,U,V_lb):
     # the initial value is zero everywhere except V_reset
 
     # here we just preallocate
-    current_p = zeros(W)
+    # this should be a matrix
+    current_p = zeros(W) 
+    # these are the values 
+    current_p_values = zeros(W)
 
     # Allocate a sparse matrix for later use
     A = scipy.sparse.lil_matrix()
-    
+    # set the variables needed for filling in the matrix
+    # these will not change 
+    a = 1/2
+    c = lif.g
+    # this one will change for each reinitialization of the 
+    # matrix A, even for each entry.
+    b = 0
 
+    
+    # for each isi
+        # for each time step
+            # calculate V_rest
+            # initialize A
+            # initialize b
+            # solve Ax = b
+            # store x in current_p matrix
+   
     
 
     # extract next interspike interval
