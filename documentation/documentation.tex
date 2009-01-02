@@ -10,6 +10,12 @@
 
 \section{Equations}
 
+% TODO:
+% insert original definition of model
+% insert definition of k
+% insert definition of \vec{x}
+% insert definition of h
+
 If we define
 
 \begin{equation}
@@ -38,10 +44,19 @@ Given the boundary conditions:
     P(V,0) = \delta(V-V_{reset})
 \end{equation}
 
-Note: we will need an additional boundary condition for the lower
-bound on the voltage.
+And when solving numerically we also need a lower bound on the
+voltage $V_{lb}$, so this becomes an additional boundary condition:
 
-And the definition of V-rest.
+\begin{equation}
+    P(V_{lb},t) = 0 
+\end{equation}
+
+
+And the definition of $V_{rest}$.
+\begin{equation}
+    V_{rest}(t) = V_{leak} + \frac{1}{g}(\vec{k} \cdot \vec{x}(t)
+    \sum_{j=0}^{i-1}h(t-t_j))
+\end{equation}
 
 
 We can rewrite this as:
@@ -173,12 +188,12 @@ we may now rewrite in the following tridiagonal matrix notation.
 
 \begin{equation}
 \begin{pmatrix}
-    B_0    & A_0   & 0      & 0      & \dots  & 0       \\
-    C_1    & B_1   & A_1    & 0      & \dots  & 0       \\
+    B_0    & A_0   & 0      & 0      & \cdots  & 0       \\
+    C_1    & B_1   & A_1    & 0      & \cdots  & 0       \\
     0      & C_2   & B_2    & A_2    & 0      &         \\
     \vdots &       & \ddots & \ddots & \ddots & \vdots  \\
-    0      & \dots & 0      & C_{I-1}& B_{I-1}& A_{I-1} \\
-    0      & \dots &        & 0      & C_I    & B_I     \\
+    0      & \cdots & 0      & C_{I-1}& B_{I-1}& A_{I-1} \\
+    0      & \cdots &        & 0      & C_I    & B_I     \\
 \end{pmatrix} 
 \begin{pmatrix}
     P_{0,\tau+1}   \\
