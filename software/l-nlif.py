@@ -96,57 +96,86 @@ class lnlif:
         x_0 initial value for x
         t_max maximum time
         dt change in time """
-        potential = zeros(self.t_max/self.dt)
-        potential[0] = x_0 
-        time = arange(0,self.t_max,self.dt)
+        self.potential = zeros(self.t_max/self.dt)
+        self.potential[0] = x_0 
+        self.time = arange(0,self.t_max,self.dt)
         for i in xrange (1,int(self.t_max/self.dt)):
-            if potential[i-1] >= self.V_threshold:
+            if self.potential[i-1] >= self.V_threshold:
                 self.spikes.append(i)
-                potential[i] = self.V_reset;
+                self.potential[i] = self.V_reset;
             else:
-                potential[i] = potential[i-1] + \
-                self.integrate(potential[i-1],time[i-1]) * self.dt + \
+                self.potential[i] = self.potential[i-1] + \
+                self.integrate(self.potential[i-1],self.time[i-1]) * self.dt + \
                 self.add_noise(self.dt)
-        return (time, potential)
+        return (self.time, self.potential)
 
 
-lif = lnlif() # init model
-lif.set_const_input(0.01); # set constant input
-lif.i_stim = lif.stim # setup stimulus
-# lif.set_convolved_input();
-lif.noise = True
-lif.set_const_h();
+def pde_solver(lif,W,U,V_lb):
+    # lif provides voltage trace, time, stimulus, threshold, an
+    # estimate of the spatio temporal linear kernel and an estimation
+    # of the h function. 
+    # W is the number of points at which V will be calculated
+    # U is the number of 
+    # V_lb is the lower bound on the voltage discretization, the V_th
+    # from lif is the uppper bound.
+
+    # current p is a vector of length W
+    # index 0 is V_lb and index end is V_th
+    # the initial value is zero everywhere except V_reset
+
+    # here we just preallocate
+    current_p = zeros(W)
+
+    # Allocate a sparse matrix for later use
+    A = scipy.sparse.lil_matrix()
+    
+
+    
+
+    # extract next interspike interval
+    
+    pass
 
 
 
-time, potential = lif.euler(lif.V_reset)
+def plot_three_h():
 
-subplot(3,2,1), plot(time,potential), title('const h')
-subplot(3,2,2), plot(lif.h)
-
-lif.reset_spikes()
-lif.set_depolarizing_h();
-time, potential = lif.euler(lif.V_reset)
-
-subplot(3,2,3), plot(time,potential), title('depolarizing h')
-subplot(3,2,4), plot(lif.h)
+    lif = lnlif() # init model
+    lif.set_const_input(0.01); # set constant input
+    lif.i_stim = lif.stim # setup stimulus
+    # lif.set_convolved_input();
+    #lif.noise = True
+    lif.set_const_h();
 
 
-lif.reset_spikes()
-lif.set_hyperdepolarizing_h();
-time, potential = lif.euler(lif.V_reset)
 
-subplot(3,2,5), plot(time,potential), title('depolarizing h')
-subplot(3,2,6), plot(lif.h)
+    time, potential = lif.euler(lif.V_reset)
 
-print len(lif.h)
+    subplot(3,2,1), plot(time,potential), title('const h')
+    subplot(3,2,2), plot(lif.h)
 
-#subplot(2,3,2), plot(lif.k), title('k')
-#subplot(2,3,3), plot(time,lif.i_stim), title('I_stim')
-#subplot(2,3,4), plot(lif.stim), title('stim')
-#subplot(2,3,5), plot(lif.h),
-show()
+    lif.reset_spikes()
+    lif.set_depolarizing_h();
+    time, potential = lif.euler(lif.V_reset)
+
+    subplot(3,2,3), plot(time,potential), title('depolarizing h')
+    subplot(3,2,4), plot(lif.h)
 
 
-# notes:
-# integrate for length of stimulus
+    lif.reset_spikes()
+    lif.set_hyperdepolarizing_h();
+    time, potential = lif.euler(lif.V_reset)
+
+    subplot(3,2,5), plot(time,potential), title('depolarizing h')
+    subplot(3,2,6), plot(lif.h)
+
+
+    #subplot(2,3,2), plot(lif.k), title('k')
+    #subplot(2,3,3), plot(time,lif.i_stim), title('I_stim')
+    #subplot(2,3,4), plot(lif.stim), title('stim')
+    #subplot(2,3,5), plot(lif.h),
+    show()
+
+
+if __name__ == '__main__':
+    plot_three_h()
