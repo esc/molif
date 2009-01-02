@@ -58,12 +58,53 @@ Since we know that $ V-V_{rest} = 0 $
 
 % Note: Some mistakes - compare with diff!
 
-Next we discretize time and potential. Time is discretized  into $U$
-intervals of length $u$ and indexed by: $\nu= 0,1, \dots U $ Potential
-is discretized into $W$ intervals of length $w$ and indexed by $\tau= 0,1,
-\dots W $. We adopt the notation that $P_{\nu,\tau} = P(\nu u,\tau w)$ 
+Next we discretize time and potential. We adopt the notation that
+Potential is discretized into $W$ intervals of length $w$ and indexed
+by $\nu= 0,1, \dots W $.  Time is discretized  into $U$ intervals of
+length $u$ and indexed by: $\tau= 0,1, \dots U $.
 
-Using the Crank-Nicolson scheme we  may now rewrite the derivatives as:
+% Note: i think this should be 
+%$P_{\nu,\tau} = P(V_0 + \nu ,t_0  +\tau )$ however this may just
+%about be clear from the context.
+
+% Note2: Here i would suggest the following strategy to remember the
+% variables: Voltage is indexed with nu, since it looks like a v and
+% the maximum and interval length are both w an W, since W comes after
+% V. Time is indexed with tau, as it looks like a t, and the maximum
+% and interval length are U and u, since u comes after t. The
+% confusion arises because nu is similar to u. 
+
+$P_{\nu,\tau} = P(\nu w,\tau u)$
+
+Before we can write down the computationally stable crank-nicholson
+method we must first write down our finite differencing scheme:
+
+\begin{equation}
+    P = P_{\nu,\tau}
+\end{equation}
+
+\begin{equation}
+    \frac{\partial P}{\partial t} = \frac{P_{\nu,\tau +1 } -
+    P_{\nu,\tau}}{u}
+\end{equation}
+
+\begin{equation}
+    \frac{\partial P}{\partial V} = 
+    \frac{P_{\nu +1,\tau } -
+    P_{\nu - 1,\tau } }
+    {2w}
+\end{equation}
+
+\begin{equation}
+    \frac{\partial^2 P}{\partial V^2} = 
+    \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau}}
+    {w^2}
+\end{equation}
+
+
+Using the Crank-Nicholson scheme we  may now rewrite the derivatives
+using a new finite differencing scheme which is centered around t+. Bearing in mind that this is only
+an approximation we get:
 
 % Note: need to introduce other notation for P otherwise you cannot
 % distinguish between the new and old one
@@ -74,7 +115,10 @@ Using the Crank-Nicolson scheme we  may now rewrite the derivatives as:
 
 % Note 1: This is only an approximation of the derivative - you need to 
 %         note it
+% Answer: done, see above
 % Note 2: How do you define your finite differencing scheme? (ex. df/dt=(f(t+h)-f(t))/h)
+% Answer: this is it, though i can't quite remember why the division
+% by u is required, but it does correspond to the time direction.
 \begin{equation}
     \frac{\partial P}{\partial t} = \frac{P_{\nu,\tau +1 } -
     P_{\nu,\tau}}{u}
@@ -82,10 +126,14 @@ Using the Crank-Nicolson scheme we  may now rewrite the derivatives as:
 
 % Note: an operator (plus or minus) is missing; where does the 4 come from (shouldn't
 %       it be a 2)
+%  Answer indeed a minus is missing. Also the 4 comes from the fact
+%  that, not using crank-nicholson, we need to divide by 2w, and
+%  dividing this again by 2 we get 4w. The same goes for the second
+%  partial derivative.
 \begin{equation}
     \frac{\partial P}{\partial V} = 
     \frac{P_{\nu +1,\tau } + P_{\nu +1,\tau +1 } -
-    P_{\nu - 1,\tau } P_{\nu -1,\tau +1}}
+    P_{\nu - 1,\tau } - P_{\nu -1,\tau +1}} 
     {4w}
 \end{equation}
 
@@ -106,21 +154,49 @@ c &= g \\
 
 and multiply throughout with $4w^2u$
 
-we may rearrange all the $P_{*,\tau+1} $ terms on the left hand side
+we may rearrange all the $P_{*,\tau+1} $ terms on the left hand side:
 
 \begin{multline}
-    \overbrace{-(2au+bwu)} P_{\nu+1,\tau+1} + 
-    \overbrace{(4au - 2cw^2u + 4w^2)} P_{\nu,\tau+1} 
-    \overbrace{-(2au-bwu)} P_{\nu-1,\tau+1} 
+    \overbrace{-(2au+bwu)}^{A_i} P_{\nu+1,\tau+1} + 
+    \overbrace{(4au - 2cw^2u + 4w^2)}^{B_i} P_{\nu,\tau+1}
+    \overbrace{-(2au-bwu)}^{C_i} P_{\nu-1,\tau+1}
     =  \\
-    (2au+bwu) P_{\nu+1,\tau} +  
+    \underbrace{(2au+bwu) P_{\nu+1,\tau} +  
     (-4au +i  2cw^2u + 4w^2) P_{\nu,\tau} + 
-    (2au-bwu) P_{\nu-1,\tau} 
+    (2au-bwu) P_{\nu-1,\tau}}_{D_i}
 \end{multline}
+
+For each $ \nu = 1 , \dots , I-1 $
 
 We note here that we have obtained $W-1$ simultaneous equations which
 we may now rewrite in the following tridiagonal matrix notation.
 
-
+\begin{equation}
+\begin{pmatrix}
+    B_0    & A_0   & 0      & 0      & \dots  & 0       \\
+    C_1    & B_1   & A_1    & 0      & \dots  & 0       \\
+    0      & C_2   & B_2    & A_2    & 0      &         \\
+    \vdots &       & \ddots & \ddots & \ddots & \vdots  \\
+    0      & \dots & 0      & C_{I-1}& B_{I-1}& A_{I-1} \\
+    0      & \dots &        & 0      & C_I    & B_I     \\
+\end{pmatrix} 
+\begin{pmatrix}
+    P_{0,\tau+1}   \\
+    P_{1,\tau+1}   \\
+    P_{2,\tau+1}   \\
+    \vdots         \\
+    P_{I-1,\tau+1} \\
+    P_{I,\tau+1}   \\
+\end{pmatrix}
+=
+\begin{pmatrix}
+    D_0     \\
+    D_1     \\
+    D_2     \\
+    \vdots  \\
+    D_{I-1} \\
+    D_I     \\
+\end{pmatrix}
+\end{equation}
 
 \end{document}
