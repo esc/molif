@@ -110,6 +110,7 @@ class lnlif:
         return (self.time, self.potential)
 
     def V_rest(self,t):
+        return 0
         return self.V_leak + 1/self.g * (self.i_stim[t] + self.i_hist(t));
 
 def pde_solver(lif,W,V_lb):
@@ -121,15 +122,6 @@ def pde_solver(lif,W,V_lb):
     # V_lb is the lower bound on the voltage discretization, the V_th
     # from lif is the uppper bound.
 
-    # current p is a vector of length W
-    # index 0 is V_lb and index end is V_th
-    # the initial value is zero everywhere except V_reset
-
-    # here we just preallocate
-    # this should be a matrix
-    current_p = zeros(W) 
-    # these are the values 
-    current_p_values = zeros(W)
 
     # Allocate a sparse matrix for later use
     Lambda = sparse.lil_matrix((W,W))
@@ -203,7 +195,7 @@ def pde_solver(lif,W,V_lb):
                 b = lif.g * (V_values[-j-1] - rest)
                 A[j+1] = -(2*a*u + b*w*u)
                 B[j+1] = ((4*a*u) - (2*c*(w**2)*u) + (4*w**2))
-                C[j] = -(2*a*u + b - w * u)
+                C[j] = -(2*a*u - b*w*u)
                 beta[j+1] = (2*a*u + b*w*u) * density[j,t] + \
                         (-4*a*u + 2*c*w**2*u + 4*w**2) * density[j+1,t] + \
                         (2*a*u - b*w*u) * density[j+2,t]
@@ -221,15 +213,18 @@ def pde_solver(lif,W,V_lb):
             print "B :" , B
             print "C :" , C
          
-            print "Lambda: " , Lambda
+            print "Lambda: " , Lambda.todense()
             print "beta: " , beta
         
             chi = linsolve.spsolve(Lambda,beta)
-            print chi
+            print "chi:" , chi
+            print "sumchi", chi.sum()
 
             # FIXME this should be doable w/o for loop dumbass
             for k in range(len(chi)):
                 density[k,t+1] = chi[k]
+
+            print "density: ", density
             
         densities.append(density)
 
@@ -247,9 +242,11 @@ def try_pde():
 
     time, potential = lif.euler(lif.V_reset)
 
-    d = pde_solver(lif,100,-0.2)
+    d = pde_solver(lif,100,-0.9)
 
-    imshow(d[0])
+    for i in range(len(d)):
+        subplot(4,len(d)/4,i), imshow(d[i])
+    colorbar()
     show()
 
 
