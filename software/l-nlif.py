@@ -12,7 +12,7 @@ class lnlif:
 
         # number of time slots to integrate until
         self.t_max = 1000
-        self.dt = 1
+        self.dt = 0.5
 
         # leak reversal potential : milli Volt
         self.V_leak = 0.9
@@ -24,7 +24,7 @@ class lnlif:
         self.V_threshold = 1
 
         # model of the stimulus as a vector : milli Ampere
-        self.stim = zeros(self.t_max) 
+        self.stim = zeros(self.t_max/self.dt) 
 
         # st.d. of the gaussian white noise process.
         self.sigma = 0.02
@@ -90,7 +90,7 @@ class lnlif:
             return 0
 
 
-    def euler(self, x_0):
+    def euler(self, x_0, quit_after_first_spike=False):
         """ euler method for for solving ODEs
         lif - a class that implements the integrate(x,t) function
         x_0 initial value for x
@@ -103,6 +103,8 @@ class lnlif:
             if self.potential[i-1] >= self.V_threshold:
                 self.spikes.append(i)
                 self.potential[i] = self.V_reset;
+                if quit_after_first_spike:
+                    return (self.time[:i] , self.potential[:i])
             else:
                 self.potential[i] = self.potential[i-1] + \
                 self.integrate(self.potential[i-1],self.time[i-1]) * self.dt + \
@@ -110,7 +112,6 @@ class lnlif:
         return (self.time, self.potential)
 
     def V_rest(self,t):
-        return 0
         return self.V_leak + 1/self.g * (self.i_stim[t] + self.i_hist(t));
 
 def pde_solver(lif,W,V_lb):
@@ -143,6 +144,7 @@ def pde_solver(lif,W,V_lb):
     V_range = V_max - V_min
     w = V_range/W
     V_values = arange(V_min,V_max,w)
+    V_values = V_values[::-1].copy() # go from high to low
     print "V_values: " , V_values
     # note: len(V_values) = W
     # this is the index of the value V_reset
@@ -192,13 +194,13 @@ def pde_solver(lif,W,V_lb):
             beta[0] = 0
             # now we go and fill the matrix in
             for j in xrange(W-2):
-                b = lif.g * (V_values[-j-1] - rest)
+                b = lif.g * (V_values[j] - rest)
                 A[j+1] = -(2*a*u + b*w*u)
-                B[j+1] = ((4*a*u) - (2*c*(w**2)*u) + (4*w**2))
+                B[j+1] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
                 C[j] = -(2*a*u - b*w*u)
-                beta[j+1] = (2*a*u + b*w*u) * density[j,t] + \
+                beta[j+1] = (2*a*u + b*w*u) * density[j+2,t] + \
                         (-4*a*u + 2*c*w**2*u + 4*w**2) * density[j+1,t] + \
-                        (2*a*u - b*w*u) * density[j+2,t]
+                        (2*a*u - b*w*u) * density[j,t]
 
             # now we need to fill in the last row
             C[W-2] = 0
@@ -237,17 +239,36 @@ def try_pde():
     lif.set_const_input(0.01); # set constant input
     lif.i_stim = lif.stim # setup stimulus
     # lif.set_convolved_input();
-    #lif.noise = True
+    lif.noise = True
     lif.set_const_h();
 
-    time, potential = lif.euler(lif.V_reset)
+    time, potential = lif.euler(lif.V_reset,quit_after_first_spike=False)
 
-    d = pde_solver(lif,100,-0.9)
+    d = pde_solver(lif,250,-0.1)
+
+    #imshow(d[0])
 
     for i in range(len(d)):
-        subplot(4,len(d)/4,i), imshow(d[i])
+         subplot(4,len(d)/4,i), imshow(d[i])
     colorbar()
     show()
+
+def try_monte_carlo():
+
+    lif = lnlif() # init model
+    lif.set_const_input(0.01); # set constant input
+    lif.i_stim = lif.stim # setup stimulus
+    # lif.set_convolved_input();
+    lif.noise = True
+    lif.set_const_h();
+
+
+
+    for i in range(100) 
+        time, potential = lif.euler(lif.V_reset,quit_after_first_spike=False)
+
+
+
 
 
 def plot_three_h():
