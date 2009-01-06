@@ -3,6 +3,8 @@
 
 from pylab import *
 from scipy import *
+from scipy import stats, sparse, linsolve
+
 
 class lnlif:
 
@@ -264,7 +266,7 @@ def try_monte_carlo():
 
 
 
-    for i in range(100) 
+    for i in range(100):
         time, potential = lif.euler(lif.V_reset,quit_after_first_spike=False)
 
 
