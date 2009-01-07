@@ -196,7 +196,7 @@ def pde_solver(lif,W,V_lb):
             beta[0] = 0
             # now we go and fill the matrix in
             for j in xrange(W-2):
-                b = lif.g * (V_values[j] - rest)
+                b = lif.g * ((V_values[j]+V_values[j+1])/2. - rest)
                 A[j+1] = -(2*a*u + b*w*u)
                 B[j+1] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
                 C[j] = -(2*a*u - b*w*u)
@@ -244,16 +244,17 @@ def try_pde():
     lif.noise = True
     lif.set_const_h();
 
-    time, potential = lif.euler(lif.V_reset,quit_after_first_spike=False)
+    time, potential = lif.euler(lif.V_reset,quit_after_first_spike=True)
 
-    d = pde_solver(lif,250,-0.1)
+    d = pde_solver(lif,500,-0.1)
 
-    #imshow(d[0])
+    imshow(d[0])
 
-    for i in range(len(d)):
-         subplot(4,len(d)/4,i), imshow(d[i])
+    #for i in range(len(d)):
+         #subplot(4,len(d)/4,i), imshow(d[i])
     colorbar()
     show()
+    return d
 
 def try_monte_carlo():
 
@@ -313,5 +314,5 @@ def plot_three_h():
 
 
 if __name__ == '__main__':
-    try_pde()
+    d = try_pde()
     #plot_three_h()
