@@ -91,7 +91,7 @@ length $u$ and indexed by: $\tau= 0,1, \dots U $.
 
 $P_{\nu,\tau} = P(\nu w,\tau u)$
 
-Before we can write down the computationally stable crank-nicholson
+Before we can write down the computationally stable Crank-nicolson
 method we must first write down our finite differencing scheme:
 
 \begin{equation}
@@ -117,8 +117,9 @@ method we must first write down our finite differencing scheme:
 \end{equation}
 
 
-Using the Crank-Nicholson scheme we  may now rewrite the derivatives
-using a new finite differencing scheme which is centered around t+. Bearing in mind that this is only
+Using the Crank-Nicolson scheme we  may now rewrite the derivatives
+using a new finite differencing scheme which is centered around $t +
+u/2$. Bearing in mind that this is only
 an approximation we get:
 
 % Note: need to introduce other notation for P otherwise you cannot

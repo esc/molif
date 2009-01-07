@@ -43,7 +43,7 @@ def cumprod2d(x):
     y = np.cumprod(aux,0)
     return np.tril(y)
 
-def FirstPassageInt(g, sigma, I, V_thr=1, V_reset=0,dt=0.1, max_t=1000):
+def FirstPassageInt(g, sigma, I, V_thr=1, V_reset=0, dt=0.1):
     """Calculate first passage time distribution of nLIF using
     integral method 
     (Paninski et al., J Comp Neurosci (2008), 24:69-79)"""
@@ -56,29 +56,48 @@ def FirstPassageInt(g, sigma, I, V_thr=1, V_reset=0,dt=0.1, max_t=1000):
     v1 = (1-u1)/g
     v1[g==0] = dt
 
-    sigma_sq = np.cumsum(np.vstack((np.zeros((1,len(v2))),v2*cumprod2d(u2))),0)[:-1,:]
+    sigma_sq = sigma**2*np.cumsum(np.vstack((np.zeros((1,len(v2))),v2*cumprod2d(u2))),0)[:-1,:]
+    
 
     sigma_sq[sigma_sq==0]=1
 
     mu1 = cumprod2d(u1) 
     mu2 = np.cumsum(np.vstack((np.zeros((1,len(v1))),v1*I*cumprod2d(u1))),0)[:-1,:]
     
+    ## Analytical calculation of sigma_sq for constant g
+    x = np.subtract.outer(np.arange(0, len(g)), np.arange(0, len(g)))*dt
+    #sigma_sq_an = sigma**2/(2*g[0])*(1-np.exp(-2*g[0]*x))
+    #mu1_an = np.exp(-g*x)
+    mu2_an = I[0]*1./g[0]*(1-np.exp(-g*x))
+    #print sigma_sq_an
+
     #2. calculate gaussians
     
     def _get_gaussian(y, x):
         mu = mu1*x+mu2
-        gaus = 1./np.sqrt(sigma_sq*2*np.pi)*np.exp(-(y-mu)**2/(2*sigma_sq))
-        #gaus[isnan(gaus)]=0
+        gaus = 1./np.sqrt(sigma_sq)*np.exp(-((y-mu)**2)/(2*sigma_sq))
+        gaus[np.isnan(gaus)]=0
         return np.tril(gaus)
 
     #3. fill in the matrices
     
-    A = _get_gaussian(V_thr, V_thr)
+    A = _get_gaussian(V_thr, V_thr)*dt
     b = _get_gaussian(V_thr, V_reset)[:,0]
+    print mu1, mu2
+    #print A, b
 
+    diag_ind = np.eye(A.shape[0], dtype=np.bool)
+    subdiag_ind = np.eye(A.shape[0], k=-1, dtype=np.bool)
+
+    #A = np.ones(A.shape)
+    A[diag_ind] = 4./3 * np.sqrt(dt)
+    A[subdiag_ind] = 7./6 * A[subdiag_ind]
+    A = A[1:, 1:]
+    b = b[1:]
+    
+    #print A
     #4. solve the system of linear equations
-
-    p = np.linalg.solve(A,b)
+    p = np.linalg.solve(A, b)
 
     return p
 
@@ -91,21 +110,22 @@ if __name__ == '__main__':
     #I = 0.5*np.random.randn(int(max_t)/dt)
     #I = 1*np.ones(int(max_t)/dt)
     
-    max_t = 50
-    dt = 0.5
+    max_t = 2
+    dt = 0.1
     g = 0.1
-    sigma = 0.1
+    sigma = 0.2
     #I = 0.5*np.random.randn(int(max_t)/dt)
-    I = 0.1*np.ones(np.ceil(max_t/dt))
+    I = 1.*np.ones(np.ceil(max_t/dt))
 
     p = FirstPassageInt(g*np.ones(len(I)), sigma, I, dt=dt)
-    plt.plot(p)
+    plt.plot(p*dt)
 
     #t, p_t = FirstPassageMC(NLIF, (g, sigma, I))
     t, p_t = FirstPassageMC(NLIF, (g, sigma, I), V_thr=1,
             dt=dt, max_t=max_t, n_trials=1E4)
-    #plt.subplot(211)
+    plt.figure()
+    plt.subplot(211)
     plt.plot(p_t)
-    #plt.subplot(212)
-    #plt.plot(t, I)
+    plt.subplot(212)
+    plt.plot(t, I)
     plt.show()
