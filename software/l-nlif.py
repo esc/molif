@@ -225,7 +225,7 @@ def pde_solver(lif,W,V_lb):
             print "beta: " , beta
         
             chi = linsolve.spsolve(Lambda,beta)
-            print chi
+            print "chi:", chi
 
             # FIXME this should be doable w/o for loop dumbass
             for k in range(len(chi)):
