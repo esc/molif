@@ -3,6 +3,7 @@
 
 import numpy as np
 import pylab as plt
+from gauss_el import gauss_back
 
 def NLIF(v, step, dt, *params):
     g, sigma, I = params  
@@ -83,8 +84,7 @@ def FirstPassageInt(g, sigma, I, V_thr=1, V_reset=0, dt=0.1):
     
     A = _get_gaussian(V_thr, V_thr)*dt
     b = _get_gaussian(V_thr, V_reset)[:,0]
-    print mu1, mu2
-    #print A, b
+    #print mu1, mu2
 
     diag_ind = np.eye(A.shape[0], dtype=np.bool)
     subdiag_ind = np.eye(A.shape[0], k=-1, dtype=np.bool)
@@ -95,11 +95,12 @@ def FirstPassageInt(g, sigma, I, V_thr=1, V_reset=0, dt=0.1):
     A = A[1:, 1:]
     b = b[1:]
     
-    #print A
+    print np.linalg.det(A)
     #4. solve the system of linear equations
     p = np.linalg.solve(A, b)
+    #p = gauss_back(A, b)
 
-    return p
+    return np.concatenate(([0],p))
 
 
 if __name__ == '__main__':
@@ -110,22 +111,21 @@ if __name__ == '__main__':
     #I = 0.5*np.random.randn(int(max_t)/dt)
     #I = 1*np.ones(int(max_t)/dt)
     
-    max_t = 2
+    max_t = 10
     dt = 0.1
-    g = 0.1
-    sigma = 0.2
+    g = 2.
+    sigma = 1.
     #I = 0.5*np.random.randn(int(max_t)/dt)
-    I = 1.*np.ones(np.ceil(max_t/dt))
+    I = 0.5*np.ones(np.ceil(max_t/dt))
 
     p = FirstPassageInt(g*np.ones(len(I)), sigma, I, dt=dt)
-    plt.plot(p*dt)
-
-    #t, p_t = FirstPassageMC(NLIF, (g, sigma, I))
     t, p_t = FirstPassageMC(NLIF, (g, sigma, I), V_thr=1,
             dt=dt, max_t=max_t, n_trials=1E4)
     plt.figure()
     plt.subplot(211)
-    plt.plot(p_t)
+    plt.plot(np.arange(len(p))*dt, p*dt, 'r-')
+    plt.plot(np.arange(len(p_t))*dt, p_t, 'b-')
+    plt.legend(("Integral eq", "Monte-Carlo"))
     plt.subplot(212)
     plt.plot(t, I)
     plt.show()
