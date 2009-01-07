@@ -116,7 +116,7 @@ class lnlif:
     def V_rest(self,t):
         return self.V_leak + 1/self.g * (self.i_stim[t] + self.i_hist(t));
 
-def pde_solver(lif,W,V_lb):
+def pde_solver(lif,W,V_lb,debug=False):
     # lif provides voltage trace, time, stimulus, threshold, an
     # estimate of the spatio temporal linear kernel and an estimation
     # of the h function. 
@@ -213,22 +213,22 @@ def pde_solver(lif,W,V_lb):
             Lambda.setdiag(B)
             Lambda.setdiag(C,-1)
 
-            print "A :" , A
-            print "B :" , B
-            print "C :" , C
+            if debug: print "A :" , A
+            if debug: print "B :" , B
+            if debug: print "C :" , C
          
-            print "Lambda: " , Lambda.todense()
-            print "beta: " , beta
+            if debug: print "Lambda: " , Lambda.todense()
+            if debug: print "beta: " , beta
         
             chi = linsolve.spsolve(Lambda,beta)
-            print "chi:" , chi
-            print "sumchi", chi.sum()
+            if debug: print "chi:" , chi
+            if debug: print "sumchi", chi.sum()
 
             # FIXME this should be doable w/o for loop dumbass
             for k in range(len(chi)):
                 density[k,t+1] = chi[k]
 
-            print "density: ", density
+            if debug: print "density: ", density
             
         densities.append(density)
 
@@ -244,14 +244,15 @@ def try_pde():
     lif.noise = True
     lif.set_const_h();
 
-    time, potential = lif.euler(lif.V_reset,quit_after_first_spike=True)
+    time, potential = \
+    lif.euler(lif.V_reset,quit_after_first_spike=True)
 
-    d = pde_solver(lif,500,-0.1)
+    d = pde_solver(lif,250,-0.2)
 
     imshow(d[0])
 
     #for i in range(len(d)):
-         #subplot(4,len(d)/4,i), imshow(d[i])
+    #     subplot(4,len(d)/4,i), imshow(d[i])
     colorbar()
     show()
     return d
@@ -263,14 +264,24 @@ def try_monte_carlo():
     lif.i_stim = lif.stim # setup stimulus
     # lif.set_convolved_input();
     lif.noise = True
+    lif.sigma = 0.002
     lif.set_const_h();
 
+    P_vt = zeros((101,300))
 
+    for i in range(1000):
+        print i
+        time, potential = \
+        lif.euler(lif.V_reset,quit_after_first_spike=True)
+        # now bin the potential 
+        print potential
+        for i in range(len(potential)-1):
+            P_vt[floor(potential[i]*100),i] = \
+            P_vt[floor(potential[i]*100),i] + 1
 
-    for i in range(100):
-        time, potential = lif.euler(lif.V_reset,quit_after_first_spike=False)
-
-
+    imshow(flipud(P_vt))
+    colorbar()
+    show()
 
 
 
@@ -314,5 +325,6 @@ def plot_three_h():
 
 
 if __name__ == '__main__':
-    d = try_pde()
+    try_monte_carlo()
+    #try_pde()
     #plot_three_h()
