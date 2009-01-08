@@ -3,7 +3,7 @@
 
 import numpy as np
 import pylab as plt
-from gauss_el import gauss_back
+#from gauss_el import gauss_back
 
 def NLIF(v, step, dt, *params):
     g, sigma, I = params  
