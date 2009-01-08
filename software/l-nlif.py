@@ -264,23 +264,33 @@ def try_monte_carlo():
     lif.i_stim = lif.stim # setup stimulus
     # lif.set_convolved_input();
     lif.noise = True
-    lif.sigma = 0.002
+    lif.sigma = 0.001
     lif.set_const_h();
 
-    P_vt = zeros((101,300))
+    P_vt = zeros((110,300))
+    first_passage_time = zeros(300)
 
-    for i in range(1000):
+    figure()
+    hold(True)
+
+
+    for i in range(10000):
         print i
         time, potential = \
         lif.euler(lif.V_reset,quit_after_first_spike=True)
+        plot(time,potential)
         # now bin the potential 
-        print potential
-        for i in range(len(potential)-1):
-            P_vt[floor(potential[i]*100),i] = \
-            P_vt[floor(potential[i]*100),i] + 1
+        P_vt[floor(potential[:]*100).astype(int64),arange(len(time))] += 1
+        #and the fpt
+        first_passage_time[len(time)] += 1
 
+    figure()
     imshow(flipud(P_vt))
     colorbar()
+
+    figure()
+    plot(first_passage_time)
+
     show()
 
 
