@@ -4,6 +4,7 @@
 import numpy as np
 import pylab as plt
 #from gauss_el import gauss_back
+import scipy.stats
 
 def NLIF(v, step, dt, *params):
     g, sigma, I = params  
@@ -40,11 +41,12 @@ def cumprod2d(x):
     n = len(x)
     #aux1 = np.r_[1, x]
     aux = np.repeat(x[:,np.newaxis],n, axis=1)
-    aux[np.tri(n, n, -1)==0] = 1 
+    print aux
+    aux[np.tri(n, n)==0] = 1 
     y = np.cumprod(aux,0)
     return np.tril(y)
 
-def FirstPassageInt(g, sigma, I, V_thr=1, V_reset=0, dt=0.1):
+def FirstPassageInt(g, sigma, I, V_thr=1., V_reset=0., dt=0.1):
     """Calculate first passage time distribution of nLIF using
     integral method 
     (Paninski et al., J Comp Neurosci (2008), 24:69-79)"""
@@ -62,14 +64,17 @@ def FirstPassageInt(g, sigma, I, V_thr=1, V_reset=0, dt=0.1):
 
     sigma_sq[sigma_sq==0]=1
 
-    mu1 = cumprod2d(u1) 
-    mu2 = np.cumsum(np.vstack((np.zeros((1,len(v1))),v1*I*cumprod2d(u1))),0)[:-1,:]
+    mu1 = cumprod2d(u1)
+    print I
+    mu2 = np.cumsum(np.vstack((np.zeros((1,len(v1))),v1*I[:,np.newaxis]*cumprod2d(u1))),
+            0)[:-1,:]
+    print mu2
     
-    ## Analytical calculation of sigma_sq for constant g
-    x = np.subtract.outer(np.arange(0, len(g)), np.arange(0, len(g)))*dt
-    #sigma_sq_an = sigma**2/(2*g[0])*(1-np.exp(-2*g[0]*x))
-    #mu1_an = np.exp(-g*x)
-    mu2_an = I[0]*1./g[0]*(1-np.exp(-g*x))
+    ## Analytical calculation of sigma_sq for constant g, I
+    #x = np.subtract.outer(np.arange(0, len(g)), np.arange(0, len(g)))*dt
+    #sigma_sq = sigma**2/(2*g[0])*(1-np.exp(-2*g[0]*x))
+    #mu1 = np.exp(-g[0]*x)
+    #mu2 = I[0]*1./g[0]*(1-np.exp(-g[0]*x))
     #print sigma_sq_an
 
     #2. calculate gaussians
@@ -95,13 +100,12 @@ def FirstPassageInt(g, sigma, I, V_thr=1, V_reset=0, dt=0.1):
     A = A[1:, 1:]
     b = b[1:]
     
-    print np.linalg.det(A)
     #4. solve the system of linear equations
     p = np.linalg.solve(A, b)
+    print np.sum(np.abs(np.dot(A, p)-b))/np.sum(b)
     #p = gauss_back(A, b)
 
     return np.concatenate(([0],p))
-
 
 if __name__ == '__main__':
     #max_t = 5
@@ -111,21 +115,24 @@ if __name__ == '__main__':
     #I = 0.5*np.random.randn(int(max_t)/dt)
     #I = 1*np.ones(int(max_t)/dt)
     
-    max_t = 10
-    dt = 0.1
+    max_t = 20
+    dt = 0.01
     g = 2.
-    sigma = 1.
+    sigma = 0.8
     #I = 0.5*np.random.randn(int(max_t)/dt)
-    I = 0.5*np.ones(np.ceil(max_t/dt))
+    #I = 0.5*np.ones(np.ceil(max_t/dt), dtype=np.float32)
+    I = 10.*(-np.cos(np.linspace(0., np.pi,np.ceil(max_t/dt)))+1)
+    t = np.arange(0, max_t, dt)
 
-    p = FirstPassageInt(g*np.ones(len(I)), sigma, I, dt=dt)
-    t, p_t = FirstPassageMC(NLIF, (g, sigma, I), V_thr=1,
-            dt=dt, max_t=max_t, n_trials=1E4)
+    p = FirstPassageInt(g*np.ones(len(I), dtype=np.float32), sigma, I, dt=dt)
+    #t, p_t = FirstPassageMC(NLIF, (g, sigma, I), V_thr=1,
+    #        dt=dt, max_t=max_t, n_trials=2E4)
+
     plt.figure()
     plt.subplot(211)
-    plt.plot(np.arange(len(p))*dt, p*dt, 'r-')
-    plt.plot(np.arange(len(p_t))*dt, p_t, 'b-')
-    plt.legend(("Integral eq", "Monte-Carlo"))
+    plt.plot(t, p*dt, 'r-')
+    #plt.plot(np.arange(len(p_t))*dt, p_t, 'b-')
+    plt.legend(("Integral eq", "Monte-Carlo", "wiener"))
     plt.subplot(212)
     plt.plot(t, I)
     plt.show()
