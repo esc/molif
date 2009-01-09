@@ -98,6 +98,7 @@ class lnlif:
         x_0 initial value for x
         t_max maximum time
         dt change in time """
+        #TODO needs also a t_max
         self.potential = zeros(self.t_max/self.dt)
         self.potential[0] = x_0 
         self.time = arange(0,self.t_max,self.dt)
@@ -243,11 +244,12 @@ def try_pde():
     # lif.set_convolved_input();
     lif.noise = True
     lif.set_const_h();
+    lif.V_leak = 0.5
 
     time, potential = \
     lif.euler(lif.V_reset,quit_after_first_spike=True)
 
-    d = pde_solver(lif,250,-0.2)
+    d = pde_solver(lif,250,0.0)
 
     imshow(d[0])
 
@@ -264,36 +266,57 @@ def try_monte_carlo():
     lif.i_stim = lif.stim # setup stimulus
     # lif.set_convolved_input();
     lif.noise = True
-    lif.sigma = 0.001
+    lif.sigma = 0.1
     lif.set_const_h();
+    V_leak = 0.0
 
-    P_vt = zeros((110,300))
-    first_passage_time = zeros(300)
+    num_replications = 5000
+    t_max = 10000
+    final_t_max = 0
 
+    potentials = zeros((num_replications,t_max))
+    potentials[:,:] = NaN
+    first_passage_time = zeros(t_max)
+    ioff()
     figure()
     hold(True)
 
+    V_max = 1
+    V_min = 0
+    V_step = 0.005
+    V_range=arange(V_min,V_max,V_step)
 
-    for i in range(10000):
+    for i in xrange(num_replications):
         print i
         time, potential = \
         lif.euler(lif.V_reset,quit_after_first_spike=True)
         plot(time,potential)
         # now bin the potential 
-        P_vt[floor(potential[:]*100).astype(int64),arange(len(time))] += 1
+        for j in xrange(len(potential)):
+            potentials[i,j] = potential[j]
         #and the fpt
         first_passage_time[len(time)] += 1
+        if len(time) > final_t_max:
+            final_t_max = len(time)
+
+    print "final_t_max: " , final_t_max
 
     figure()
-    imshow(flipud(P_vt))
+
+    # make one histogram for each time step
+    y = [ histogram(potentials[:,i],bins=V_range)[0] for i in \
+            xrange(final_t_max)]
+    y = array(y)
+   
+    # chop off top and bottom row, cause, they skew the colors
+    imshow(rot90(y)[1:-2,:])
+
     colorbar()
 
     figure()
-    plot(first_passage_time)
+    plot(first_passage_time[:final_t_max])
 
     show()
-
-
 
 def plot_three_h():
 
@@ -303,8 +326,6 @@ def plot_three_h():
     # lif.set_convolved_input();
     #lif.noise = True
     lif.set_const_h();
-
-
 
     time, potential = lif.euler(lif.V_reset)
 
