@@ -13,7 +13,7 @@ class lnlif:
         self.spikes = [0]
 
         # number of time slots to integrate until
-        self.t_max = 1000
+        self.t_max = 5000
         self.dt = 0.5
 
         # leak reversal potential : milli Volt
@@ -44,7 +44,7 @@ class lnlif:
 
     def set_rand_input(self):
         """ random input current """
-        self.stim =rand(self.t_max)
+        self.stim =rand(self.t_max) * 0.5
 
     def set_const_input(self,current):
         """ constant input current """
@@ -131,7 +131,7 @@ def pde_solver(lif,W,V_lb,debug=False):
     Lambda = sparse.lil_matrix((W,W))
     # set the variables needed for filling in the matrix
     # these will not change 
-    a = 1/2
+    a = lif.sigma**2/2
     c = lif.g
     # this one will change for each reinitialization of the 
     # matrix A, even for each entry.
@@ -159,14 +159,20 @@ def pde_solver(lif,W,V_lb,debug=False):
     # this will be the target for Ax = b
     beta = zeros(W)
 
-    for i in xrange(1,len(lif.spikes)):
+    #for i in xrange(1,len(lif.spikes)):
+    for i in xrange(1,2):
         # for each ISI
-        start = lif.spikes[i-1]
-        end   = lif.spikes[i]
+        #start = lif.spikes[i-1]
+        #end   = lif.spikes[i]
+        start = 0
+        end = 500
         # this is our time discretization
         # because we may not have the value of the stimulus at
         # alternative values this may be different for each ISI
         # if there is noise
+        if debug : print start
+        if debug : print end
+
         U = end-start
         # note: U is also the number of rows in the final
         # density matrix to store the result of the density evolution.
@@ -197,7 +203,7 @@ def pde_solver(lif,W,V_lb,debug=False):
             beta[0] = 0
             # now we go and fill the matrix in
             for j in xrange(W-2):
-                b = lif.g * ((V_values[j]+V_values[j+1])/2. - rest)
+                b = lif.g * ((V_values[j]+V_values[j+2])/2. - rest)
                 A[j+1] = -(2*a*u + b*w*u)
                 B[j+1] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
                 C[j] = -(2*a*u - b*w*u)
@@ -239,17 +245,19 @@ def pde_solver(lif,W,V_lb,debug=False):
 def try_pde():
 
     lif = lnlif() # init model
-    lif.set_const_input(0.01); # set constant input
+    lif.set_const_input(0.00); # set constant input
+    #lif.set_rand_input()
     lif.i_stim = lif.stim # setup stimulus
     # lif.set_convolved_input();
-    lif.noise = True
-    lif.set_const_h();
-    lif.V_leak = 0.5
+    lif.noise = False
+    lif.set_const_h()
+    lif.V_leak = 0.0
+    lif.sigma = 0.1
 
     time, potential = \
     lif.euler(lif.V_reset,quit_after_first_spike=True)
 
-    d = pde_solver(lif,250,0.0)
+    d = pde_solver(lif,500,-2.0,debug=True)
 
     imshow(d[0])
 
@@ -262,13 +270,13 @@ def try_pde():
 def try_monte_carlo():
 
     lif = lnlif() # init model
-    lif.set_const_input(0.01); # set constant input
-    lif.i_stim = lif.stim # setup stimulus
+    lif.set_const_input(0.01); # set constant inputA
+    lif.i_stim = lif.stim # setup stimulus    
     # lif.set_convolved_input();
-    lif.noise = True
-    lif.sigma = 0.1
+    lif.noise = False
     lif.set_const_h();
-    V_leak = 0.0
+    lif.V_leak = 0.2
+    lif.sigma = 0.0
 
     num_replications = 5000
     t_max = 10000
@@ -309,13 +317,12 @@ def try_monte_carlo():
     y = array(y)
    
     # chop off top and bottom row, cause, they skew the colors
+    print shape(y)
     imshow(rot90(y)[1:-2,:])
 
     colorbar()
-
     figure()
     plot(first_passage_time[:final_t_max])
-
     show()
 
 def plot_three_h():
@@ -356,6 +363,6 @@ def plot_three_h():
 
 
 if __name__ == '__main__':
-    try_monte_carlo()
-    #try_pde()
+    #try_monte_carlo()
+    try_pde()
     #plot_three_h()
