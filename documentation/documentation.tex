@@ -30,7 +30,7 @@ numerically.
 
 \begin{equation}
     \frac{\partial P(V,t)}{\partial t} =
-    \frac{1}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
+    \frac{\sigma^2}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
     g\frac{\partial[(V-V_{rest})P(V,t)]}{\partial V}
 \end{equation}
 
@@ -62,7 +62,7 @@ And the definition of $V_{rest}$.
 We can rewrite this as:
 
 \begin{equation}
-    \frac{1}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
+    \frac{\sigma^2}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
     g(V-V_{rest})\frac{\partial P(V,t)}{\partial V} +
     gP(V,t) -
     \frac{\partial P(V,t)}{\partial t} = 
@@ -153,7 +153,7 @@ an approximation we get:
 if we now let:
 
 \begin{align*}
-a &= \frac{1}{2} \\
+a &= \frac{\sigma^2}{2} \\
 b &= g(V - V_{rest}) \\
 c &= g \\
 \end{align*}
