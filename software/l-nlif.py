@@ -262,10 +262,9 @@ def try_pde():
     time, potential = \
     lif.euler(lif.V_reset,quit_after_first_spike=True)
 
-    d = pde_solver(lif,500,-2.0,debug=False)
+    d = pde_solver(lif,500,-3.0,debug=False)
 
     imshow(flipud(d[0]))
-    show()
 
     #for i in range(len(d)):
     #     subplot(4,len(d)/4,i), imshow(d[i])
@@ -287,12 +286,12 @@ def try_monte_carlo():
     lif.set_const_input(0.5); # set constant inputA
     lif.i_stim = lif.stim # setup stimulus    
     # lif.set_convolved_input();
-    lif.noise = False
+    lif.noise = True
     lif.set_const_h();
     lif.V_leak = 0.0
-    lif.sigma = 0.1
+    lif.sigma = 0.08
 
-    num_replications = 5000
+    num_replications = 300
     t_max = 10000
     final_t_max = 0
 
