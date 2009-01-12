@@ -8,13 +8,13 @@ from scipy import stats, sparse, linsolve
 
 class lnlif:
 
-    def __init__(self):
+    def __init__(self, dt=0.1):
         # a place to store the spikes
         self.spikes = [0]
 
         # number of time slots to integrate until
-        self.t_max = 1000
-        self.dt = 0.5
+        self.t_max = 5000
+        self.dt = dt
 
         # leak reversal potential : milli Volt
         self.V_leak = 0.9
@@ -44,7 +44,7 @@ class lnlif:
 
     def set_rand_input(self):
         """ random input current """
-        self.stim =rand(self.t_max)
+        self.stim =rand(self.t_max) * 0.5
 
     def set_const_input(self,current):
         """ constant input current """
@@ -98,6 +98,7 @@ class lnlif:
         x_0 initial value for x
         t_max maximum time
         dt change in time """
+        #TODO needs also a t_max
         self.potential = zeros(self.t_max/self.dt)
         self.potential[0] = x_0 
         self.time = arange(0,self.t_max,self.dt)
@@ -130,7 +131,7 @@ def pde_solver(lif,W,V_lb,debug=False):
     Lambda = sparse.lil_matrix((W,W))
     # set the variables needed for filling in the matrix
     # these will not change 
-    a = 1/2
+    a = lif.sigma**2/2
     c = lif.g
     # this one will change for each reinitialization of the 
     # matrix A, even for each entry.
@@ -159,13 +160,19 @@ def pde_solver(lif,W,V_lb,debug=False):
     beta = zeros(W)
 
     for i in xrange(1,len(lif.spikes)):
+    #for i in xrange(1,2):
         # for each ISI
         start = lif.spikes[i-1]
         end   = lif.spikes[i]
+        #start = 0
+        #end = 500
         # this is our time discretization
         # because we may not have the value of the stimulus at
         # alternative values this may be different for each ISI
         # if there is noise
+        if debug : print start
+        if debug : print end
+
         U = end-start
         # note: U is also the number of rows in the final
         # density matrix to store the result of the density evolution.
@@ -229,6 +236,9 @@ def pde_solver(lif,W,V_lb,debug=False):
                 density[k,t+1] = chi[k]
 
             if debug: print "density: ", density
+
+            # Use this to check the acuracy of the linsolve method
+            #print (Lambda * chi  - beta).sum()
             
         densities.append(density)
 
@@ -237,63 +247,94 @@ def pde_solver(lif,W,V_lb,debug=False):
 
 def try_pde():
 
-    lif = lnlif() # init model
-    lif.set_const_input(0.01); # set constant input
+    lif = lnlif(dt=0.1) # init model
+    lif.set_const_input(0.02); # set constant input
+    #lif.set_rand_input()
     lif.i_stim = lif.stim # setup stimulus
     # lif.set_convolved_input();
-    lif.noise = True
-    lif.set_const_h();
+    lif.noise = False
+    lif.set_const_h()
+    lif.V_leak = 0.0
+    lif.sigma = 0.00001
 
     time, potential = \
     lif.euler(lif.V_reset,quit_after_first_spike=True)
 
-    d = pde_solver(lif,250,-0.2)
+    d = pde_solver(lif,500,-2.0,debug=False)
 
     imshow(d[0])
 
     #for i in range(len(d)):
     #     subplot(4,len(d)/4,i), imshow(d[i])
     colorbar()
+
+    P_vt = d[0]
+
+    figure()
+    fpt = diff(P_vt.sum(axis=0))
+    plot(fpt)
     show()
+
+
     return d
 
 def try_monte_carlo():
 
     lif = lnlif() # init model
-    lif.set_const_input(0.01); # set constant input
-    lif.i_stim = lif.stim # setup stimulus
+    lif.set_const_input(0.01); # set constant inputA
+    lif.i_stim = lif.stim # setup stimulus    
     # lif.set_convolved_input();
-    lif.noise = True
-    lif.sigma = 0.001
+    lif.noise = False
     lif.set_const_h();
+    lif.V_leak = 0.2
+    lif.sigma = 0.0
 
-    P_vt = zeros((110,300))
-    first_passage_time = zeros(300)
+    num_replications = 5000
+    t_max = 10000
+    final_t_max = 0
 
+    potentials = zeros((num_replications,t_max))
+    potentials[:,:] = NaN
+    first_passage_time = zeros(t_max)
+    ioff()
     figure()
     hold(True)
 
+    V_max = 1
+    V_min = 0
+    V_step = 0.005
+    V_range=arange(V_min,V_max,V_step)
 
-    for i in range(10000):
+    for i in xrange(num_replications):
         print i
         time, potential = \
         lif.euler(lif.V_reset,quit_after_first_spike=True)
         plot(time,potential)
         # now bin the potential 
-        P_vt[floor(potential[:]*100).astype(int64),arange(len(time))] += 1
+        for j in xrange(len(potential)):
+            potentials[i,j] = potential[j]
         #and the fpt
         first_passage_time[len(time)] += 1
+        if len(time) > final_t_max:
+            final_t_max = len(time)
+
+    print "final_t_max: " , final_t_max
 
     figure()
-    imshow(flipud(P_vt))
+
+    # make one histogram for each time step
+    y = [ histogram(potentials[:,i],bins=V_range)[0] for i in \
+            xrange(final_t_max)]
+    y = array(y)
+   
+    # chop off top and bottom row, cause, they skew the colors
+    print shape(y)
+    imshow(rot90(y)[1:-2,:])
+
     colorbar()
-
     figure()
-    plot(first_passage_time)
-
+    plot(first_passage_time[:final_t_max])
     show()
-
-
 
 def plot_three_h():
 
@@ -303,8 +344,6 @@ def plot_three_h():
     # lif.set_convolved_input();
     #lif.noise = True
     lif.set_const_h();
-
-
 
     time, potential = lif.euler(lif.V_reset)
 
@@ -335,6 +374,6 @@ def plot_three_h():
 
 
 if __name__ == '__main__':
-    try_monte_carlo()
-    #try_pde()
+    #try_monte_carlo()
+    try_pde()
     #plot_three_h()
