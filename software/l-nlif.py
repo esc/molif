@@ -115,6 +115,7 @@ class lnlif:
         return (self.time, self.potential)
 
     def V_rest(self,t):
+        return 0
         return self.V_leak + 1/self.g * (self.i_stim[t] + self.i_hist(t));
 
 def pde_solver(lif,W,V_lb,debug=False):
@@ -247,15 +248,16 @@ def pde_solver(lif,W,V_lb,debug=False):
 
 def try_pde():
 
-    lif = lnlif(dt=0.1) # init model
-    lif.set_const_input(0.02); # set constant input
+    lif = lnlif(dt=0.01) # init model
+    lif.set_const_input(0.5); # set constant input
     #lif.set_rand_input()
     lif.i_stim = lif.stim # setup stimulus
     # lif.set_convolved_input();
     lif.noise = False
     lif.set_const_h()
     lif.V_leak = 0.0
-    lif.sigma = 0.00001
+    lif.g = 0
+    lif.sigma = 0.01
 
     time, potential = \
     lif.euler(lif.V_reset,quit_after_first_spike=True)
@@ -280,14 +282,14 @@ def try_pde():
 
 def try_monte_carlo():
 
-    lif = lnlif() # init model
-    lif.set_const_input(0.01); # set constant inputA
+    lif = lnlif(dt=0.01) # init model
+    lif.set_const_input(0.5); # set constant inputA
     lif.i_stim = lif.stim # setup stimulus    
     # lif.set_convolved_input();
     lif.noise = False
     lif.set_const_h();
-    lif.V_leak = 0.2
-    lif.sigma = 0.0
+    lif.V_leak = 0.0
+    lif.sigma = 0.1
 
     num_replications = 5000
     t_max = 10000
