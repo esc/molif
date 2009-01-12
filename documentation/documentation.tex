@@ -6,33 +6,57 @@
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{\baselineskip}
 
-\title{Lab Rotation}
+\title{Implementation of the Density Evolution method with
+Fokker-Plank for L-NLIF Model in Python}
 \author{Valentin Haenel}
 
 \begin{document} 
 
 \maketitle
 
-
-\section{Equations}
-
-% TODO:
-% insert original definition of model
-% insert definition of k
-% insert definition of \vec{x}
-% insert definition of h
-
+\section{Model}
 The original model is a L-NLIF model, which consists of a Linear
-(L) Filter, followed by a probabilistic  or Noisy (N) form of Leaky
-Integrate and Fire spike generation
+(L) Filter, followed by a probabilistic or Noisy (N) form of Leaky
+Integrate and Fire spike generation(LIF) (Paninski et
+al.\cite{PaninskiPillowSimoncelli}). For sake of completeness the
+model is described here.
 
-If we define
+The evolution of the Voltage $V$ is given by:
+
+\begin{equation}
+    dV = (-g(V(t) -V_{leak}) +I_{stim}(t) + I_{hist}(t)) dt + W_{t}
+\end{equation}
+
+Where $g$ is the leak conductance $V_{leak}$ is the leak reversal
+potential $I_{stim}$ is the convolution of linear filter with the
+input signal, $I_{hist}$ is the spike current history and $W_t$ is
+standard Gaussian white noise. More precisely:
+
+\begin{equation}
+    I_{stim}(t) = \vec{k} \dot \vec{x}(t)
+\end{equation}
+
+and
+
+\begin{equation}
+    I_{hist}(t) = \sum_{j=0}^{i-1}h(t-t_j)
+\end{equation}
+
+Where $k$ is a linear filter and $h$ is a fixed postspike current waveform. 
+
+
+
+\section{Density Evolution}
+
+
+If we define 
 
 \begin{equation}
     P(V,t) \equiv P(V(t) \cap  V(s) < V_{th} \forall s < t)
 \end{equation}
 This refers to the probability of $V(t)$, the membrane potential,
 being less than $V_{th}$ the firing threshold until time $t$.  
+
 
 
 We need to solve the following Fokker-Planck drift diffusion equation
@@ -54,7 +78,7 @@ Given the boundary conditions:
     P(V,0) = \delta(V-V_{reset})
 \end{equation}
 
-And when solving numerically we also need a lower bound on the
+when solving numerically we also need a lower bound on the
 voltage $V_{lb}$, so this becomes an additional boundary condition:
 
 \begin{equation}
@@ -224,6 +248,11 @@ we may now rewrite in the following tridiagonal matrix notation.
 However this matrix equation has W+1 equations, so we must use the
 boundary conditions to specify the first and last rows of $\Lambda$.
 We can then use a tridiagonal matrix algorithm to solve $\Lambda \chi
-= \beta$
+= \beta$.
+
+This allows us to iteratively obtain the density evolution of the
+membrane potential.
+
+\bibliography{documentation}{ \bibliographystyle{abbrv} }
 
 \end{document}
