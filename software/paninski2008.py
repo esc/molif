@@ -26,7 +26,7 @@ def FirstPassageMC(func, params, V_thr=1, dt=0.1, max_t=100,
         if spike:
             passage_time.append(step*dt)
     n, bins = np.histogram(passage_time, time)
-    return time, n/(1.*n_trials)
+    return np.arange(len(n))*dt, n/(1.*n_trials)
 
 def cumsum2d(x):
     """Calculates a matrix of cummulated sums:
@@ -46,6 +46,34 @@ def cumprod2d(x):
     y = np.cumprod(aux,0)
     return np.tril(y)
 
+def get_gauss_means(u1, v1, I):
+    n = len(I)
+    mu1 = np.zeros((n,n))
+    mu2 = np.zeros((n,n))
+    for s in xrange(n):
+        for t in xrange(s,n):
+            mu1[t, s] =  np.prod(u1[s:t+1])
+            for i in xrange(s+1,t):
+                prod = np.prod(u1[i+1:t+1])
+                mu2[t, s] +=  v1[i]*I[i]*prod
+    return mu1, mu2
+
+def get_gauss_means_vec(u1, v1, I):
+    n = len(I)
+    aux = np.repeat(u1[:,np.newaxis],n, axis=1)
+
+    #calculate x*\exp{-\int_s^t g(v)dv}
+    aux[np.tri(n, n, 0)==0] = 1 
+    mu1 = np.cumprod(aux, 0)
+
+    aux[np.tri(n, n, -1)==0] = 1 
+    y = np.cumprod(aux,0)
+    y[np.tri(n, n, 0)==0] = 0
+    y = v1*I*y
+    mu2 = np.cumsum(y[:,::-1], 1)[:, ::-1]
+    return mu1, mu2
+
+
 def FirstPassageInt(g, sigma, I, V_thr=1., V_reset=0., dt=0.1):
     """Calculate first passage time distribution of nLIF using
     integral method 
@@ -64,11 +92,8 @@ def FirstPassageInt(g, sigma, I, V_thr=1., V_reset=0., dt=0.1):
 
     sigma_sq[sigma_sq==0]=1
 
-    mu1 = cumprod2d(u1)
-    print I
-    mu2 = np.cumsum(np.vstack((np.zeros((1,len(v1))),v1*I[:,np.newaxis]*cumprod2d(u1))),
-            0)[:-1,:]
-    print mu2
+    mu1, mu2 = get_gauss_means_vec(u1, v1, I)
+    #mu1, mu2 = get_gauss_means(u1, v1, I)
     
     ## Analytical calculation of sigma_sq for constant g, I
     #x = np.subtract.outer(np.arange(0, len(g)), np.arange(0, len(g)))*dt
@@ -116,23 +141,25 @@ if __name__ == '__main__':
     #I = 1*np.ones(int(max_t)/dt)
     
     max_t = 20
-    dt = 0.01
+    dt = 0.1
     g = 2.
     sigma = 0.8
     #I = 0.5*np.random.randn(int(max_t)/dt)
     #I = 0.5*np.ones(np.ceil(max_t/dt), dtype=np.float32)
-    I = 10.*(-np.cos(np.linspace(0., np.pi,np.ceil(max_t/dt)))+1)
+    I = 1.*(-np.sin(np.linspace(0., 2*np.pi,np.ceil(max_t/dt)))+1)
     t = np.arange(0, max_t, dt)
 
     p = FirstPassageInt(g*np.ones(len(I), dtype=np.float32), sigma, I, dt=dt)
-    #t, p_t = FirstPassageMC(NLIF, (g, sigma, I), V_thr=1,
-    #        dt=dt, max_t=max_t, n_trials=2E4)
+    dt_mc = 0.01
+    I_mc = 1.*(-np.sin(np.linspace(0., 2*np.pi,np.ceil(max_t/dt_mc)))+1)
+    t_mc, p_mc = FirstPassageMC(NLIF, (g, sigma, I_mc), V_thr=1,
+            dt=dt_mc, max_t=max_t, n_trials=2E4)
 
     plt.figure()
     plt.subplot(211)
-    plt.plot(t, p*dt, 'r-')
-    #plt.plot(np.arange(len(p_t))*dt, p_t, 'b-')
-    plt.legend(("Integral eq", "Monte-Carlo", "wiener"))
+    plt.plot(t, p, 'r-')
+    plt.plot(t_mc, p_mc/dt_mc, 'b-')
+    #plt.legend(("Integral eq", "Monte-Carlo", "wiener"))
     plt.subplot(212)
     plt.plot(t, I)
     plt.show()
