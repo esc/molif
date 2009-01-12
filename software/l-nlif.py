@@ -115,7 +115,7 @@ class lnlif:
         return (self.time, self.potential)
 
     def V_rest(self,t):
-        return 0
+        #return 0
         return self.V_leak + 1/self.g * (self.i_stim[t] + self.i_hist(t));
 
 def pde_solver(lif,W,V_lb,debug=False):
@@ -148,7 +148,7 @@ def pde_solver(lif,W,V_lb,debug=False):
     V_range = V_max - V_min
     w = V_range/W
     V_values = arange(V_min,V_max,w)
-    V_values = V_values[::-1].copy() # go from high to low
+    #V_values = V_values[::-1].copy() # go from high to low
     print "V_values: " , V_values
     # note: len(V_values) = W
     # this is the index of the value V_reset
@@ -256,15 +256,16 @@ def try_pde():
     lif.noise = False
     lif.set_const_h()
     lif.V_leak = 0.0
-    lif.g = 0
-    lif.sigma = 0.01
+    #lif.g = 0
+    lif.sigma = 0.1
 
     time, potential = \
     lif.euler(lif.V_reset,quit_after_first_spike=True)
 
     d = pde_solver(lif,500,-2.0,debug=False)
 
-    imshow(d[0])
+    imshow(flipud(d[0]))
+    show()
 
     #for i in range(len(d)):
     #     subplot(4,len(d)/4,i), imshow(d[i])
