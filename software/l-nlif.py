@@ -8,13 +8,13 @@ from scipy import stats, sparse, linsolve
 
 class lnlif:
 
-    def __init__(self):
+    def __init__(self, dt=0.1):
         # a place to store the spikes
         self.spikes = [0]
 
         # number of time slots to integrate until
         self.t_max = 5000
-        self.dt = 0.5
+        self.dt = dt
 
         # leak reversal potential : milli Volt
         self.V_leak = 0.9
@@ -159,13 +159,13 @@ def pde_solver(lif,W,V_lb,debug=False):
     # this will be the target for Ax = b
     beta = zeros(W)
 
-    #for i in xrange(1,len(lif.spikes)):
-    for i in xrange(1,2):
+    for i in xrange(1,len(lif.spikes)):
+    #for i in xrange(1,2):
         # for each ISI
-        #start = lif.spikes[i-1]
-        #end   = lif.spikes[i]
-        start = 0
-        end = 500
+        start = lif.spikes[i-1]
+        end   = lif.spikes[i]
+        #start = 0
+        #end = 500
         # this is our time discretization
         # because we may not have the value of the stimulus at
         # alternative values this may be different for each ISI
@@ -203,7 +203,7 @@ def pde_solver(lif,W,V_lb,debug=False):
             beta[0] = 0
             # now we go and fill the matrix in
             for j in xrange(W-2):
-                b = lif.g * ((V_values[j]+V_values[j+2])/2. - rest)
+                b = lif.g * ((V_values[j]+V_values[j+1])/2. - rest)
                 A[j+1] = -(2*a*u + b*w*u)
                 B[j+1] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
                 C[j] = -(2*a*u - b*w*u)
@@ -236,6 +236,9 @@ def pde_solver(lif,W,V_lb,debug=False):
                 density[k,t+1] = chi[k]
 
             if debug: print "density: ", density
+
+            # Use this to check the acuracy of the linsolve method
+            #print (Lambda * chi  - beta).sum()
             
         densities.append(density)
 
@@ -244,27 +247,35 @@ def pde_solver(lif,W,V_lb,debug=False):
 
 def try_pde():
 
-    lif = lnlif() # init model
-    lif.set_const_input(0.00); # set constant input
+    lif = lnlif(dt=0.1) # init model
+    lif.set_const_input(0.02); # set constant input
     #lif.set_rand_input()
     lif.i_stim = lif.stim # setup stimulus
     # lif.set_convolved_input();
     lif.noise = False
     lif.set_const_h()
     lif.V_leak = 0.0
-    lif.sigma = 0.1
+    lif.sigma = 0.00001
 
     time, potential = \
     lif.euler(lif.V_reset,quit_after_first_spike=True)
 
-    d = pde_solver(lif,500,-2.0,debug=True)
+    d = pde_solver(lif,500,-2.0,debug=False)
 
     imshow(d[0])
 
     #for i in range(len(d)):
     #     subplot(4,len(d)/4,i), imshow(d[i])
     colorbar()
+
+    P_vt = d[0]
+
+    figure()
+    fpt = diff(P_vt.sum(axis=0))
+    plot(fpt)
     show()
+
+
     return d
 
 def try_monte_carlo():
