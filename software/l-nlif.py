@@ -8,13 +8,18 @@ from scipy import stats, sparse, linsolve
 
 class lnlif:
 
-    def __init__(self, dt=0.1):
+    def __init__(self, t_max=5000, dt=0.1):
+        """ initialize the L-NLIF model using max_time and dt
+        DO NOT CHANGE t_max or dt AFTER INITIALIZATION """
+        # number of time slots to integrate until
+        self.t_max = t_max
+        # discretization in time
+        self.dt = dt
+        # time vector
+        self.time = arange(0,self.t_max/self.dt,self.dt)
+
         # a place to store the spikes
         self.spikes = [0]
-
-        # number of time slots to integrate until
-        self.t_max = 5000
-        self.dt = dt
 
         # leak reversal potential : milli Volt
         self.V_leak = 0.9
@@ -24,15 +29,15 @@ class lnlif:
         self.V_reset = 0
         # potential voltage : milli Volt
         self.V_threshold = 1
-
-        # model of the stimulus as a vector : milli Ampere
+        # allocate for stimulus : milli Ampere
         self.stim = zeros(self.t_max/self.dt) 
-
         # st.d. of the gaussian white noise process.
         self.sigma = 0.02
         self.noise = False
+        # scaling of the afterspike current waveform
         self.h_scale = 0.5
 
+        #FIXME need some way of setting this
         # spationtemporal linear kernel
         # in this case modeled as a difference of gaussians
         n = stats.distributions.norm
@@ -43,40 +48,37 @@ class lnlif:
         
 
     def set_rand_input(self):
-        """ random input current """
         self.stim =rand(self.t_max) * 0.5
 
     def set_const_input(self,current):
-        """ constant input current """
         self.stim[:] = current
 
     def set_depolarizing_h(self):
-        self.h = self.h_scale * 1/exp(self.get_time())
+        self.h = self.h_scale * 1/exp(self.time())
 
     def set_const_h(self):
-        self.h = zeros(len(self.get_time()))
+        self.h = zeros(len(self.time))
 
     def set_hyperdepolarizing_h(self):
-        self.h =  self.h_scale * -1/exp(self.get_time())
+        self.h =  self.h_scale * -1/exp(self.time())
 
-    def get_time(self):
-        return arange(0,self.t_max/self.dt,self.dt)
+    def get_time_vector(self):
+        """ returns the tim indices """
 
     def reset_spikes(self):
         self.spikes = [0]
 
-
     def set_convolved_input(self):
         """ setup the input convolved with the linear filter"""
         # now convolve the linear filter k with the stimulus
-        # this really should be of length t_max
+        # FIXME this really should be of length t_max
         # check that the convolution does indeed return this.
         # may need to pad out the linear kernel
         self.i_stim = 0.2 + convolve(self.stim,self.k, mode='same')
 
     def integrate(self,x,t):
+        """ definition of dV/dt """
         return -self.g*(x - self.V_leak) + self.i_stim[t] + self.i_hist(t)
-        
   
     def i_hist(self,t):
         # in the case where the temporal basis functions are not knowen
@@ -99,9 +101,9 @@ class lnlif:
         t_max maximum time
         dt change in time """
         #TODO needs also a t_max
+        # i.e. a time to integrate until
         self.potential = zeros(self.t_max/self.dt)
         self.potential[0] = x_0 
-        self.time = arange(0,self.t_max,self.dt)
         for i in xrange (1,int(self.t_max/self.dt)):
             if self.potential[i-1] >= self.V_threshold:
                 self.spikes.append(i)
@@ -115,138 +117,189 @@ class lnlif:
         return (self.time, self.potential)
 
     def V_rest(self,t):
+        """ stationary point of the noiseless subthreshold dynamics
+        """
         #return 0
         return self.V_leak + 1/self.g * (self.i_stim[t] + self.i_hist(t));
 
-def pde_solver(lif,W,V_lb,debug=False):
-    # lif provides voltage trace, time, stimulus, threshold, an
-    # estimate of the spatio temporal linear kernel and an estimation
-    # of the h function. 
-    # W is the number of points at which P(V,t) will be calculated
-    # U is the number of 
-    # V_lb is the lower bound on the voltage discretization, the V_th
-    # from lif is the uppper bound.
+class pde_solver():
+    def __init__(self,lif,W,V_lb,debug=False):
+        """ compute the density evolution for a lif model
 
+            Arguments:
+            lif  - and instance of lnlif
+            W    - the number of intervals to split lif.t_max into
+            V_lb - the lower bound on the voltage discretization
+            debug- when True will output lots of debugging
 
-    # Allocate a sparse matrix for later use
-    Lambda = sparse.lil_matrix((W,W))
-    # set the variables needed for filling in the matrix
-    # these will not change 
-    a = lif.sigma**2/2
-    c = lif.g
-    # this one will change for each reinitialization of the 
-    # matrix A, even for each entry.
-    b = 0
-    # take the length of a time interval to be the 
-    # dt of the neuron we used as input
-    u = lif.dt
+            lif provides most of the variables for this function.
+        """
 
+        self.lif = lif
+        self.W = W
+        self.V_lb = V_lb
+        self.debug = debug
+        # Lambda is our tridiagonal matrix in each iteration step
+        self.Lambda = sparse.lil_matrix((self.W,self.W))
+        # coefficients of the terms in the Fokker-Planck equation
+        self.a = self.lif.sigma**2/2
+        self.c = self.lif.g
+        self.b = 0
+        # length of time interval in discretization
+        self.u = self.lif.dt
+        # voltage upper bound
+        self.V_max = self.lif.V_threshold;
+        # voltage lower bound
+        self.V_min = self.V_lb
+        # voltage range 
+        self.V_range = self.V_max - self.V_min
+        # lenth of a voltage interval
+        self.w = self.V_range/self.W
+        # mapping of possible values for voltage note: len(V_values) = W
+        self.V_values = arange(self.V_min,self.V_max,self.w)
+        if self.debug: print "V_values: " , self.V_values
+        # this is the index of the value thats closest to V_reset
+        self.V_reset_index = abs(self.V_values - lif.V_reset).argmin()  
+        if self.debug: print "V_reset_index" , self.V_reset_index
+        # Lambda * chi = beta
+        self.beta = zeros(W)
 
-    V_max = lif.V_threshold;
-    V_min = V_lb
-    # now divide the difference into W equally spaced intervals
-    V_range = V_max - V_min
-    w = V_range/W
-    V_values = arange(V_min,V_max,w)
-    #V_values = V_values[::-1].copy() # go from high to low
-    print "V_values: " , V_values
-    # note: len(V_values) = W
-    # this is the index of the value V_reset
-    V_reset_index = abs(V_values - lif.V_reset).argmin()  
-    print "V_reset_index" , V_reset_index
+    def pde_spike_train(self):
+        """ compute the density evolution for all isis """
 
-    # collect all densities for all ISIs
-    densities = []
-    # this will be the target for Ax = b
-    beta = zeros(W)
+        # collection list for all densities
+        densities = []
 
-    for i in xrange(1,len(lif.spikes)):
-    #for i in xrange(1,2):
-        # for each ISI
-        start = lif.spikes[i-1]
-        end   = lif.spikes[i]
-        #start = 0
-        #end = 500
-        # this is our time discretization
-        # because we may not have the value of the stimulus at
-        # alternative values this may be different for each ISI
-        # if there is noise
-        if debug : print start
-        if debug : print end
+        for i in xrange(1,len(self.lif.spikes)):
+            # for each ISI
+            start = self.lif.spikes[i-1]
+            end   = self.lif.spikes[i]
+            if self.debug : print start
+            if self.debug : print end
 
+            density =  self.pde_interval(start,end)
+            densities.append(density)
+        
+        return densities
+
+    def pde_interval(self,start,end):
+        """ compute the density evolution for the given interval """
+        # length of the time interval
         U = end-start
-        # note: U is also the number of rows in the final
-        # density matrix to store the result of the density evolution.
-        density = zeros((W,U))
-        #here we set the left hand side boundary condition
-        density[V_reset_index,0] = 1
+        # final density matrix for this interval
+        density = zeros((self.W,U))
+        # set initial value
+        density[self.V_reset_index,0] = 1
         for t in xrange(U-1):
-            # for each time step
-            rest = lif.V_rest(start+t);
-            # now we really need to initialize the target matrix
-            # we do this stupidly first and then optimize
-            # now we need the A B and C diagonals
-            # A is the top diagonal
-            A = zeros(W-1)
-            # B is THE diagonal
-            B = zeros(W)
-            # C is the lower diagonal
-            C = zeros(W-1)
+            # V_rest as defined by lif
+            V_rest = self.lif.V_rest(start+t);
+            # A B and C diagonals of Lambda
+            A = zeros(self.W-1)
+            B = zeros(self.W)
+            C = zeros(self.W-1)
             # zeroout the target
             #FIXME technically this could probably be skipped
             #since the values will be overwritten anyway
-            beta[:] = 0
+            self.beta[:] = 0
             # first we set the top boundary conditions
             # P(V_th,t) = 0 
             # i.e. the top row of the matrix
             B[0] = 1
             A[0] = 0
-            beta[0] = 0
+            self.beta[0] = 0
             # now we go and fill the matrix in
-            for j in xrange(W-2):
-                b = lif.g * ((V_values[j]+V_values[j+1])/2. - rest)
+            a = self.a
+            b = self.b
+            c = self.c
+            u = self.u
+            w = self.w
+            for j in xrange(self.W-2):
+                b = self.lif.g * ((self.V_values[j]+self.V_values[j+1])/2. - V_rest)
                 A[j+1] = -(2*a*u + b*w*u)
                 B[j+1] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
                 C[j] = -(2*a*u - b*w*u)
-                beta[j+1] = (2*a*u + b*w*u) * density[j+2,t] + \
+                self.beta[j+1] = (2*a*u + b*w*u) * density[j+2,t] + \
                         (-4*a*u + 2*c*w**2*u + 4*w**2) * density[j+1,t] + \
                         (2*a*u - b*w*u) * density[j,t]
 
-            # now we need to fill in the last row
-            C[W-2] = 0
-            B[W-1] = 1
-            beta[W-1] = 0
-            # now we setup the tridiagonal matrix
-            Lambda.setdiag(A,1)
-            Lambda.setdiag(B)
-            Lambda.setdiag(C,-1)
+            # now we need to fill in the last row, which are the lower
+            # boundary conditions, i.e. P(V_lb,t) = 0
+            C[self.W-2] = 0
+            B[self.W-1] = 1
+            self.beta[self.W-1] = 0
+            # now we set the diagonals of the tridiagonal matrix
+            self.Lambda.setdiag(A,1)
+            self.Lambda.setdiag(B)
+            self.Lambda.setdiag(C,-1)
 
-            if debug: print "A :" , A
-            if debug: print "B :" , B
-            if debug: print "C :" , C
-         
-            if debug: print "Lambda: " , Lambda.todense()
-            if debug: print "beta: " , beta
-        
-            chi = linsolve.spsolve(Lambda,beta)
-            if debug: print "chi:" , chi
-            if debug: print "sumchi", chi.sum()
+            
+            if self.debug: 
+                print "A :" , A
+                print "B :" , B
+                print "C :" , C
+                print "Lambda: " , self.Lambda.todense()
+                print "beta: " , self.beta
+            
+            chi = linsolve.spsolve(self.Lambda,self.beta)
+
+            if self.debug: 
+                print "chi:" , chi
+                print "sumchi", chi.sum()
 
             # FIXME this should be doable w/o for loop dumbass
-            for k in range(len(chi)):
-                density[k,t+1] = chi[k]
+            #for k in range(len(chi)):
 
-            if debug: print "density: ", density
+            density[:,t+1] = chi[:]
 
-            # Use this to check the acuracy of the linsolve method
-            #print (Lambda * chi  - beta).sum()
-            
-        densities.append(density)
+            if self.debug: print "density: ", density
 
-        
-    return densities
+        return density
 
 def try_pde():
+    lif = lif_setup()
+
+    pde = pde_solver(lif,500,-3.0,debug=False)
+
+    #d = pde.pde_spike_train()
+    #imshow(flipud(d[0]))
+    d = pde.pde_interval(0,400)
+    imshow(flipud(d))
+    
+
+    #for i in range(len(d)):
+    #     subplot(4,len(d)/4,i), imshow(d[i])
+    colorbar()
+
+    P_vt = d
+
+    figure()
+    fpt = diff(P_vt.sum(axis=0))
+    plot(fpt)
+    show()
+
+
+    return d
+
+def compute_fpt():
+    """ compute and the first passage time """
+    print "computing partial differentail equation based first \
+    passage time now"
+    lif = lif_setup()
+    pde = pde_solver(lif,500,-3.0,debug=False)
+    P_vt = pde.pde_interval(0,400)
+    fpt = abs(diff(P_vt.sum(axis=0)))
+    
+    return P_vt, fpt
+
+def plot_fpt():
+    P_vt, fpt = compute_fpt()
+    imshow(flipud(P_vt))
+    colorbar()
+    figure()
+    plot(fpt)
+    show()
+
+def lif_setup():
 
     lif = lnlif(dt=0.01) # init model
     lif.set_const_input(0.5); # set constant input
@@ -262,42 +315,19 @@ def try_pde():
     time, potential = \
     lif.euler(lif.V_reset,quit_after_first_spike=True)
 
-    d = pde_solver(lif,500,-3.0,debug=False)
-
-    imshow(flipud(d[0]))
-
-    #for i in range(len(d)):
-    #     subplot(4,len(d)/4,i), imshow(d[i])
-    colorbar()
-
-    P_vt = d[0]
-
-    figure()
-    fpt = diff(P_vt.sum(axis=0))
-    plot(fpt)
-    show()
-
-
-    return d
+    return lif
 
 def try_monte_carlo():
 
-    lif = lnlif(dt=0.01) # init model
-    lif.set_const_input(0.5); # set constant inputA
-    lif.i_stim = lif.stim # setup stimulus    
-    # lif.set_convolved_input();
+    lif = lif_setup()
     lif.noise = True
-    lif.set_const_h();
-    lif.V_leak = 0.0
-    lif.sigma = 0.08
 
-    num_replications = 300
-    t_max = 10000
-    final_t_max = 0
+    num_replications = 500
+    final_t_max = 400
 
-    potentials = zeros((num_replications,t_max))
+    potentials = zeros((num_replications,lif.t_max))
     potentials[:,:] = NaN
-    first_passage_time = zeros(t_max)
+    first_passage_time = zeros(lif.t_max)
     ioff()
     figure()
     hold(True)
@@ -338,6 +368,37 @@ def try_monte_carlo():
     plot(first_passage_time[:final_t_max])
     show()
 
+def monte_carlo_fpt(reps=500,t_max=400):
+    print "computing monte carlo based first passage time now"
+    print "using" , reps,"replications "
+    lif = lif_setup()
+    lif.noise = True
+
+    fpt = zeros(t_max)
+
+    for i in xrange(reps):
+        if i%100 == 0 : print i
+        time, potential = \
+        lif.euler(lif.V_reset,quit_after_first_spike=True)
+        fpt[len(time)] += 1
+
+    return fpt/reps
+
+def plot_monte_carlo_fpt():
+    mc_fpt = monte_carlo_fpt(reps=10000)
+    plot(mc_fpt)
+    show()
+
+def compare_pde_mc_fpt():
+    """ compare the partial differental equation and monte carlo first
+    passage time """
+
+    mc_fpt = monte_carlo_fpt(reps=10000)
+    P_vt, pde_fpt = compute_fpt()
+    plot(mc_fpt,'r')
+    plot(pde_fpt,'g')
+    show()
+
 def plot_three_h():
 
     lif = lnlif() # init model
@@ -376,6 +437,11 @@ def plot_three_h():
 
 
 if __name__ == '__main__':
+    #plot_fpt()
     #try_monte_carlo()
-    try_pde()
+    #plot_monte_carlo_fpt()
+    #try_pde()
     #plot_three_h()
+
+
+    compare_pde_mc_fpt()
