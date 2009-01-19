@@ -3,11 +3,12 @@
 
 from pylab import imshow, figure, plot, show
 from numpy import arange, zeros, sqrt, random, diff
-from scipy import stats, sparse, linsolve
+from scipy import stats, sparse, linsolve, optimize
 
 #TODO pylint it
 #     write a function for likelihood
 #     see if you can optimize this likelihood function
+#     the definition of I_hist isn't fully implemented
 
 
 class lnlif:
@@ -423,11 +424,42 @@ def mle(variable,fixed):
     # W
     # spike train
 
+    # unpack the fixed arguments
+    lif,V_lb,W,spikes = fixed
+
+    # what about dt?
+
     # pseudocode:
     # set lif up with variables/theta
     # including spikes
     # compute the fpt for each interval using pde solver
     # return the product of all fpts as the result of the maximizer
+
+def try_opt():
+    # create the neuron
+    lif = lif_setup()
+    # generate some spikes
+    time, potential = lif.euler(lif.V_reset)
+
+    # make the variables vector
+    # [g,V_leak,V_reset,k,h]
+    variables = zeros(3+len(lif.k)+len(lif.h))
+    id_g = 0
+    id_V_leak = 1
+    id_V_reset = 2
+    id_k = 3
+    id_h = 3 + len(k)
+    ids = (id_g,id_V_leak,id_V_reset,k,h)
+    variables[id_g] = lif.g
+    variables[id_V_leak] = lif.V_leak
+    variables[id_V_reset] = lif.V_reset
+    variables[id_k:id_h] = lif.k
+    variables[id_h:-1] = lif.h
+
+    # make the fixed tuple 
+    fixed = (lif,-3.0,500,lif.spikes,ids)
+
+    optimize.fmin(
 
 
     
