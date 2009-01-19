@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 #coding=utf-8
 
-from pylab import *
-from scipy import *
+from pylab import imshow, figure, plot, show
+from numpy import arange, zeros, sqrt, random, diff
 from scipy import stats, sparse, linsolve
+
+#TODO pylint it
+#     write a function for likelihood
+#     see if you can optimize this likelihood function
 
 
 class lnlif:
@@ -246,9 +250,6 @@ class pde_solver():
                 print "chi:" , chi
                 print "sumchi", chi.sum()
 
-            # FIXME this should be doable w/o for loop dumbass
-            #for k in range(len(chi)):
-
             density[:,t+1] = chi[:]
 
             if self.debug: print "density: ", density
@@ -256,22 +257,15 @@ class pde_solver():
         return density
 
 def try_pde():
+    """ try pde solver without simulating a single spike of the neuron
+    """
     lif = lif_setup()
-
     pde = pde_solver(lif,500,-3.0,debug=False)
-
-    #d = pde.pde_spike_train()
-    #imshow(flipud(d[0]))
     d = pde.pde_interval(0,400)
+
     imshow(flipud(d))
-    
-
-    #for i in range(len(d)):
-    #     subplot(4,len(d)/4,i), imshow(d[i])
     colorbar()
-
     P_vt = d
-
     figure()
     fpt = diff(P_vt.sum(axis=0))
     plot(fpt)
@@ -281,7 +275,7 @@ def try_pde():
     return d
 
 def compute_fpt():
-    """ compute and the first passage time """
+    """ compute the first passage time using pde"""
     print "computing partial differentail equation based first \
     passage time now"
     lif = lif_setup()
@@ -292,6 +286,7 @@ def compute_fpt():
     return P_vt, fpt
 
 def plot_fpt():
+    """ plot density evolution and and first passage time. """
     P_vt, fpt = compute_fpt()
     imshow(flipud(P_vt))
     colorbar()
@@ -300,7 +295,7 @@ def plot_fpt():
     show()
 
 def lif_setup():
-
+    """ initialize nueron model with default parameters """
     lif = lnlif(dt=0.01) # init model
     lif.set_const_input(0.5); # set constant input
     #lif.set_rand_input()
@@ -318,7 +313,8 @@ def lif_setup():
     return lif
 
 def try_monte_carlo():
-
+    """ try to calculate both density and first passage time using
+    monte carlo method """
     lif = lif_setup()
     lif.noise = True
 
@@ -369,6 +365,7 @@ def try_monte_carlo():
     show()
 
 def monte_carlo_fpt(reps=500,t_max=400):
+    """ compute only first passage time using monte carlo """
     print "computing monte carlo based first passage time now"
     print "using" , reps,"replications "
     lif = lif_setup()
@@ -393,13 +390,53 @@ def compare_pde_mc_fpt():
     """ compare the partial differental equation and monte carlo first
     passage time """
 
-    mc_fpt = monte_carlo_fpt(reps=10000)
+    mc_fpt = monte_carlo_fpt(reps=10)
     P_vt, pde_fpt = compute_fpt()
     plot(mc_fpt,'r')
     plot(pde_fpt,'g')
     show()
 
+def mle(variable,fixed):
+    """ the maximum likelihood optimizer that is the product of all
+    first passage times of all spike intervals 
+
+    variable - ndarray of parameters to be optimized, will change
+    during optimization
+    fixed    - additional arguments for this functions, will remain
+    fixed during optimization
+
+    """
+    # first we need to figure out what our variables are
+    # note: this may also be considered the theta vector
+
+    # parametrs of the lif:
+    # k
+    # h
+    # g
+    # V_leak
+    # V_reset
+
+    # now we also want to know what our fixed are
+
+    # lif
+    # V_lb
+    # W
+    # spike train
+
+    # pseudocode:
+    # set lif up with variables/theta
+    # including spikes
+    # compute the fpt for each interval using pde solver
+    # return the product of all fpts as the result of the maximizer
+
+
+    
+
+
+
+
 def plot_three_h():
+    """ shows the possibilities that we have with varying h """
 
     lif = lnlif() # init model
     lif.set_const_input(0.01); # set constant input
