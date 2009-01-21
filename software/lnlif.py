@@ -45,6 +45,8 @@ class lnlif:
         #FIXME need some way of setting this
         # spationtemporal linear kernel
         # in this case modeled as a difference of gaussians
+        # for starters just use a delta pulse, as the most simple
+        # kernel, or even a short filter(couple of values)
         n = stats.distributions.norm
         x = arange(-10,10,0.05)
         pos = stats.distributions.norm_gen.pdf(n,x,loc=0)
@@ -218,10 +220,13 @@ class pde_solver():
             c = self.c
             u = self.u
             w = self.w
+            # FIXME refator with arrays, and get rid of for loop
+            # also make sure the timing becomes better, and the
+            # results don't change.
             for j in xrange(self.W-2):
                 b = self.lif.g * ((self.V_values[j]+self.V_values[j+1])/2. - V_rest)
                 A[j+1] = -(2*a*u + b*w*u)
-                B[j+1] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
+                B[j+2] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
                 C[j] = -(2*a*u - b*w*u)
                 self.beta[j+1] = (2*a*u + b*w*u) * density[j+2,t] + \
                         (-4*a*u + 2*c*w**2*u + 4*w**2) * density[j+1,t] + \
@@ -460,10 +465,6 @@ def try_opt():
     fixed = (lif,-3.0,500,lif.spikes,ids)
 
     optimize.fmin(
-
-
-    
-
 
 
 
