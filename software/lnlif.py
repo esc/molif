@@ -2,8 +2,22 @@
 #coding=utf-8
 
 from pylab import imshow, figure, plot, show
-from numpy import arange, zeros, sqrt, random, diff
+from numpy import arange, zeros, sqrt, random, diff, cumsum
 from scipy import stats, sparse, linsolve, optimize
+import time
+import cProfile
+
+
+def print_timing(func):
+    """ decorator to estimate the timing of methods """
+    def wrapper(*arg, **kwargs):
+        t1 = time.time()
+        res = func(*arg , **kwargs)
+        t2 = time.time()
+        print '%s took %0.3f ms' % (func.func_name, (t2-t1)*1000.0)
+        return res
+    return wrapper
+
 
 #TODO pylint it
 #     write a function for likelihood
@@ -188,8 +202,79 @@ class pde_solver():
             densities.append(density)
         
         return densities
-
+    @print_timing
     def pde_interval(self,start,end):
+        """ compute the density evolution for the given interval """
+        # length of the time interval
+        U = end-start
+        # final density matrix for this interval
+        density = zeros((self.W,U))
+        # set initial value
+        density[self.V_reset_index,0] = 1
+        for t in xrange(U-1):
+            # V_rest as defined by lif
+            V_rest = self.lif.V_rest(start+t);
+            # A B and C diagonals of Lambda
+            A = zeros(self.W-1)
+            B = zeros(self.W)
+            C = zeros(self.W-1)
+            # first we set the top boundary conditions
+            # P(V_th,t) = 0 
+            # i.e. the top row of the matrix
+            B[0] = 1
+            A[0] = 0
+            self.beta[0] = 0
+            # now we go and fill the matrix in
+            a,b,c,u,w = self.a, self.b, self.c, self.u, self.w
+
+            b_array = self.lif.g * ((self.V_values[:-2] + \
+                self.V_values[1:-1])/2 -V_rest)
+            
+            #here we scrapped the for loop, yes!
+            #but scrapped readability, no!
+            A[1:]= -(2*a*u + b_array*w*u)
+
+            B[1:-1] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
+
+            C[:-1]= -(2*a*u - b_array*w*u)
+            
+            self.beta[1:-1] = (2*a*u + b_array[:]*w*u) * density[2:,t] + \
+                (-4*a*u + 2*c*w**2*u + 4*w**2) * density[1:-1,t] +   \
+                (2*a*u - b_array[:]*w*u) * density[:-2,t]
+
+
+            # now we need to fill in the last row, which are the lower
+            # boundary conditions, i.e. P(V_lb,t) = 0
+            C[self.W-2] = 0
+            B[self.W-1] = 1
+            self.beta[self.W-1] = 0
+            # now we set the diagonals of the tridiagonal matrix
+            self.Lambda.setdiag(A,1)
+            self.Lambda.setdiag(B)
+            self.Lambda.setdiag(C,-1)
+
+            
+            if self.debug: 
+                print "A :" , A
+                print "B :" , B
+                print "C :" , C
+                print "Lambda: " , self.Lambda.todense()
+                print "beta: " , self.beta
+            
+            chi = linsolve.spsolve(self.Lambda,self.beta)
+
+            if self.debug: 
+                print "chi:" , chi
+                print "sumchi", chi.sum()
+
+            density[:,t+1] = chi[:]
+
+            if self.debug: print "density: ", density
+
+        return density
+
+    @print_timing
+    def pde_interval_NEW(self,start,end):
         """ compute the density evolution for the given interval """
         # length of the time interval
         U = end-start
@@ -226,7 +311,7 @@ class pde_solver():
             for j in xrange(self.W-2):
                 b = self.lif.g * ((self.V_values[j]+self.V_values[j+1])/2. - V_rest)
                 A[j+1] = -(2*a*u + b*w*u)
-                B[j+2] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
+                B[j+1] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
                 C[j] = -(2*a*u - b*w*u)
                 self.beta[j+1] = (2*a*u + b*w*u) * density[j+2,t] + \
                         (-4*a*u + 2*c*w**2*u + 4*w**2) * density[j+1,t] + \
@@ -262,6 +347,7 @@ class pde_solver():
 
         return density
 
+
 def try_pde():
     """ try pde solver without simulating a single spike of the neuron
     """
@@ -277,10 +363,10 @@ def try_pde():
     plot(fpt)
     show()
 
-
     return d
 
-def compute_fpt():
+@print_timing
+def compute_pde_fpt():
     """ compute the first passage time using pde"""
     print "computing partial differentail equation based first \
     passage time now"
@@ -288,12 +374,11 @@ def compute_fpt():
     pde = pde_solver(lif,500,-3.0,debug=False)
     P_vt = pde.pde_interval(0,400)
     fpt = abs(diff(P_vt.sum(axis=0)))
-    
     return P_vt, fpt
 
 def plot_fpt():
     """ plot density evolution and and first passage time. """
-    P_vt, fpt = compute_fpt()
+    P_vt, fpt = compute_pde_fpt()
     imshow(flipud(P_vt))
     colorbar()
     figure()
@@ -370,6 +455,7 @@ def try_monte_carlo():
     plot(first_passage_time[:final_t_max])
     show()
 
+@print_timing
 def monte_carlo_fpt(reps=500,t_max=400):
     """ compute only first passage time using monte carlo """
     print "computing monte carlo based first passage time now"
@@ -392,14 +478,33 @@ def plot_monte_carlo_fpt():
     plot(mc_fpt)
     show()
 
+def compare_old_new():
+    lif = lif_setup()
+    pde = pde_solver(lif,500,-3.0,debug=False)
+    P_vt_1 = pde.pde_interval(0,400)
+    P_vt_2 = pde.pde_interval_NEW(0,400)
+
+    print (P_vt_1 == P_vt_2).all()
+
+
+        
+
 def compare_pde_mc_fpt():
     """ compare the partial differental equation and monte carlo first
     passage time """
 
-    mc_fpt = monte_carlo_fpt(reps=10)
-    P_vt, pde_fpt = compute_fpt()
+    mc_fpt = monte_carlo_fpt(reps=5000)
+    P_vt, pde_fpt = compute_pde_fpt()
+
+    D,p = stats.ks_2samp(cumsum(mc_fpt),cumsum(pde_fpt))
+    print "K-S test D value: " , D
+    print "K-S test p value: " , p
     plot(mc_fpt,'r')
     plot(pde_fpt,'g')
+    figure()
+
+    plot(cumsum(mc_fpt),'r')
+    plot(cumsum(pde_fpt),'g')
     show()
 
 def mle(variable,fixed):
@@ -464,7 +569,7 @@ def try_opt():
     # make the fixed tuple 
     fixed = (lif,-3.0,500,lif.spikes,ids)
 
-    optimize.fmin(
+    optimize.fmin()
 
 
 
@@ -514,4 +619,5 @@ if __name__ == '__main__':
     #plot_three_h()
 
 
-    compare_pde_mc_fpt()
+    #compare_pde_mc_fpt()
+    compare_old_new()
