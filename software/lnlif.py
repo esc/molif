@@ -202,6 +202,7 @@ class pde_solver():
             densities.append(density)
         
         return densities
+
     @print_timing
     def pde_interval(self,start,end):
         """ compute the density evolution for the given interval """
@@ -211,6 +212,8 @@ class pde_solver():
         density = zeros((self.W,U))
         # set initial value
         density[self.V_reset_index,0] = 1
+        print density
+        print "W" , self.W
         for t in xrange(U-1):
             # V_rest as defined by lif
             V_rest = self.lif.V_rest(start+t);
@@ -272,7 +275,6 @@ class pde_solver():
             if self.debug: print "density: ", density
 
         return density
-
 
 def try_pde():
     """ try pde solver without simulating a single spike of the neuron
@@ -411,7 +413,7 @@ def compare_pde_mc_fpt():
     mc_fpt = monte_carlo_fpt(reps=5000)
     P_vt, pde_fpt = compute_pde_fpt()
 
-    D,p = stats.ks_2samp(cumsum(mc_fpt),cumsum(pde_fpt))
+    D,p = stats.ks_2samp(mc_fpt,pde_fpt)
     print "K-S test D value: " , D
     print "K-S test p value: " , p
     plot(mc_fpt,'r')
@@ -422,7 +424,7 @@ def compare_pde_mc_fpt():
     plot(cumsum(pde_fpt),'g')
     show()
 
-def mle(variable,fixed):
+def mle(variables,lif,V_lb,W,spikes,ids):
     """ the maximum likelihood optimizer that is the product of all
     first passage times of all spike intervals 
 
@@ -435,22 +437,13 @@ def mle(variable,fixed):
     # first we need to figure out what our variables are
     # note: this may also be considered the theta vector
 
-    # parametrs of the lif:
-    # k
-    # h
-    # g
-    # V_leak
-    # V_reset
 
-    # now we also want to know what our fixed are
+    lif.g = variables[0]
+    lif.V_leak = variables[1]
+    lif.V_reset = variables[2]
+    # ignoring k and h for now
 
-    # lif
-    # V_lb
-    # W
-    # spike train
-
-    # unpack the fixed arguments
-    lif,V_lb,W,spikes = fixed
+    lif.spikes = spikes
 
     # what about dt?
 
@@ -459,6 +452,15 @@ def mle(variable,fixed):
     # including spikes
     # compute the fpt for each interval using pde solver
     # return the product of all fpts as the result of the maximizer
+
+    p = pde_solver(lif,W,V_lb)
+    densities = p.pde_spike_train()
+    likelihood = 0
+    # for each density compute the fpt and
+
+    for d in densities:
+        fpt = diff(d.sum(axis=0))
+        likelihood += fpt[-1]
 
 def try_opt():
     # create the neuron
@@ -472,21 +474,21 @@ def try_opt():
     id_g = 0
     id_V_leak = 1
     id_V_reset = 2
-    id_k = 3
-    id_h = 3 + len(k)
-    ids = (id_g,id_V_leak,id_V_reset,k,h)
+    #id_k = 3
+    #id_h = 3 + len(k)
+    ids = (id_g,id_V_leak,id_V_reset)
     variables[id_g] = lif.g
     variables[id_V_leak] = lif.V_leak
     variables[id_V_reset] = lif.V_reset
-    variables[id_k:id_h] = lif.k
-    variables[id_h:-1] = lif.h
+    #variables[id_k:id_h] = lif.k
+    #variables[id_h:-1] = lif.h
 
     # make the fixed tuple 
     fixed = (lif,-3.0,500,lif.spikes,ids)
 
-    optimize.fmin()
+    xopt = optimize.fmin(mle,variables,fixed)
 
-
+    print xopt
 
 def plot_three_h():
     """ shows the possibilities that we have with varying h """
@@ -510,7 +512,6 @@ def plot_three_h():
     subplot(3,2,3), plot(time,potential), title('depolarizing h')
     subplot(3,2,4), plot(lif.h)
 
-
     lif.reset_spikes()
     lif.set_hyperdepolarizing_h();
     time, potential = lif.euler(lif.V_reset)
@@ -532,6 +533,5 @@ if __name__ == '__main__':
     #plot_monte_carlo_fpt()
     #try_pde()
     #plot_three_h()
-
-
-    compare_pde_mc_fpt()
+    #compare_pde_mc_fpt()
+    try_opt()
