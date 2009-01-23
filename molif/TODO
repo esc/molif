@@ -1,0 +1,10 @@
+pylint  the code
+write at least some unit tests
+integrate Paninski 2008 into the general framework
+migrate the last piece of code from software/lnlif.py into molif
+package
+accelerate the optimizer
+the definition of I_hist isn't fully implemented
+fix the implementation of the kernel
+
+
