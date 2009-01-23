@@ -1,5 +1,6 @@
 pylint  the code
 write at least some unit tests
+check pydocs
 integrate Paninski 2008 into the general framework
 migrate the last piece of code from software/lnlif.py into molif
 package
