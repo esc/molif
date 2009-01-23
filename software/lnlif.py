@@ -20,14 +20,13 @@ def print_timing(func):
 
 
 #TODO pylint it
-#     write a function for likelihood
-#     see if you can optimize this likelihood function
 #     the definition of I_hist isn't fully implemented
+#     fix the implementation of the kernel
 
 
 class lnlif:
 
-    def __init__(self, t_max=5000, dt=0.1):
+    def __init__(self, t_max=100, dt=0.1):
         """ initialize the L-NLIF model using max_time and dt
         DO NOT CHANGE t_max or dt AFTER INITIALIZATION """
         # number of time slots to integrate until
@@ -124,7 +123,8 @@ class lnlif:
         #TODO needs also a t_max
         # i.e. a time to integrate until
         self.potential = zeros(self.t_max/self.dt)
-        self.potential[0] = x_0 
+        self.potential[0] = x_0
+        self.reset_spikes()
         for i in xrange (1,int(self.t_max/self.dt)):
             if self.potential[i-1] >= self.V_threshold:
                 self.spikes.append(i)
@@ -154,6 +154,7 @@ class pde_solver():
             debug- when True will output lots of debugging
 
             lif provides most of the variables for this function.
+
         """
 
         self.lif = lif
@@ -185,25 +186,37 @@ class pde_solver():
         # Lambda * chi = beta
         self.beta = zeros(W)
 
-    def pde_spike_train(self):
-        """ compute the density evolution for all isis """
-
-        # collection list for all densities
-        densities = []
-
+    def compute_product_fpt(self):
+        """ compute the product of all fpts for all spike intervals
+        this is the maximum likelihood
+        """
+        print "computing fpt for all intervals, total: ", \
+        len(self.lif.spikes)
+        likelihood = 0
         for i in xrange(1,len(self.lif.spikes)):
+            if i%10==0 : print "interval: " , i
             # for each ISI
             start = self.lif.spikes[i-1]
             end   = self.lif.spikes[i]
-            if self.debug : print start
-            if self.debug : print end
+            if self.debug : 
+                print "start: ", start
+                print "end:" , end
+                print "spike_times", self.lif.spikes
 
             density =  self.pde_interval(start,end)
-            densities.append(density)
+            likelihood += self.density_to_fpt(density)[-1]
+            del density
         
-        return densities
+        return likelihood
 
-    @print_timing
+    def density_to_fpt(self,density):
+        """ turn the density into an fpt
+        Differentiat w.r.t. time the integral w.r.t. Potential
+
+        """
+        return diff(density.sum(axis=0)) * -1.0
+
+    #@print_timing
     def pde_interval(self,start,end):
         """ compute the density evolution for the given interval """
         # length of the time interval
@@ -211,9 +224,12 @@ class pde_solver():
         # final density matrix for this interval
         density = zeros((self.W,U))
         # set initial value
+        if self.debug : 
+            print "W" , self.W
+            print "U" , U
+            print density 
         density[self.V_reset_index,0] = 1
-        print density
-        print "W" , self.W
+
         for t in xrange(U-1):
             # V_rest as defined by lif
             V_rest = self.lif.V_rest(start+t);
@@ -299,10 +315,10 @@ def compute_pde_fpt():
     print "computing partial differentail equation based first \
     passage time now"
     lif = lif_setup()
-    pde = pde_solver(lif,500,-3.0,debug=False)
-    P_vt = pde.pde_interval(0,400)
-    fpt = abs(diff(P_vt.sum(axis=0)))
-    return P_vt, fpt
+    p = pde_solver(lif,500,-3.0,debug=False)
+    density = p.pde_interval(0,400)
+    fpt = p.density_to_fpt(density)
+    return density, fpt
 
 def plot_fpt():
     """ plot density evolution and and first passage time. """
@@ -327,7 +343,7 @@ def lif_setup():
     lif.sigma = 0.1
 
     time, potential = \
-    lif.euler(lif.V_reset,quit_after_first_spike=True)
+    lif.euler(lif.V_reset,quit_after_first_spike=False)
 
     return lif
 
@@ -425,17 +441,8 @@ def compare_pde_mc_fpt():
     show()
 
 def mle(variables,lif,V_lb,W,spikes,ids):
-    """ the maximum likelihood optimizer that is the product of all
-    first passage times of all spike intervals 
-
-    variable - ndarray of parameters to be optimized, will change
-    during optimization
-    fixed    - additional arguments for this functions, will remain
-    fixed during optimization
-
-    """
-    # first we need to figure out what our variables are
-    # note: this may also be considered the theta vector
+    """ maximum lkelihood function to give to optimizer """
+    print "maximum likelihood function called"
 
 
     lif.g = variables[0]
@@ -447,22 +454,14 @@ def mle(variables,lif,V_lb,W,spikes,ids):
 
     # what about dt?
 
-    # pseudocode:
-    # set lif up with variables/theta
-    # including spikes
-    # compute the fpt for each interval using pde solver
-    # return the product of all fpts as the result of the maximizer
-
     p = pde_solver(lif,W,V_lb)
-    densities = p.pde_spike_train()
-    likelihood = 0
-    # for each density compute the fpt and
+    likelihood = p.compute_product_fpt()
+    del p
+    return likelihood
 
-    for d in densities:
-        fpt = diff(d.sum(axis=0))
-        likelihood += fpt[-1]
-
+@print_timing
 def try_opt():
+    print "trying optimizer"
     # create the neuron
     lif = lif_setup()
     # generate some spikes
@@ -486,9 +485,11 @@ def try_opt():
     # make the fixed tuple 
     fixed = (lif,-3.0,500,lif.spikes,ids)
 
-    xopt = optimize.fmin(mle,variables,fixed)
+    print mle(variables,lif,-2.0,100,lif.spikes,ids)
 
-    print xopt
+    #xopt = optimize.fmin(mle,variables,fixed)
+
+    #print xopt
 
 def plot_three_h():
     """ shows the possibilities that we have with varying h """
