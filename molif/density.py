@@ -177,6 +177,5 @@ def compute_pde_fpt():
 
 
 if __name__ == '__main__':
-    print "loaded molif.density, will attempt to run pde solver"
-    compute_pde_fpt()
+    pass
 

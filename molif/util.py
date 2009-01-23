@@ -22,4 +22,4 @@ def print_timing(func):
     return wrapper
 
 if __name__ == '__main__':
-    print "Loaded molif.util"
+    pass

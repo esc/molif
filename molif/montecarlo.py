@@ -11,9 +11,10 @@
 
 from util import * 
 from model import *
+from numpy import nan, histogram, array , rot90
 
 
-def try_monte_carlo():
+def mc_P_vt_fpt():
     """ try to calculate both density and first passage time using
     monte carlo method """
     lif = lif_setup()
@@ -22,51 +23,38 @@ def try_monte_carlo():
     num_replications = 500
     final_t_max = 400
 
-    potentials = zeros((num_replications,lif.t_max))
-    potentials[:,:] = NaN
-    first_passage_time = zeros(lif.t_max)
-    ioff()
-    figure()
-    hold(True)
+    pots = zeros((num_replications,final_t_max))
+    pots[:,:] = nan
+    fpt = zeros(final_t_max)
 
-    V_max = 1
-    V_min = 0
-    V_step = 0.005
-    V_range=arange(V_min,V_max,V_step)
+    traces = []
 
     for i in xrange(num_replications):
-        print i
+        if i%100 == 0 : print i
         time, potential = \
         lif.euler(lif.V_reset,quit_after_first_spike=True)
-        plot(time,potential)
         # now bin the potential 
         for j in xrange(len(potential)):
-            potentials[i,j] = potential[j]
+            pots[i,j] = potential[j]
         #and the fpt
-        first_passage_time[len(time)] += 1
-        if len(time) > final_t_max:
-            final_t_max = len(time)
-
-    print "final_t_max: " , final_t_max
-
-    figure()
+        traces.append(potential)
+        fpt[len(time)] += 1
 
     # make one histogram for each time step
-    y = [ histogram(potentials[:,i],bins=V_range)[0] for i in \
+    V_range=arange(0,1,0.005)
+    P_vt = [ histogram(pots[:,i],bins=V_range)[0] for i in \
             xrange(final_t_max)]
-    y = array(y)
-   
+    P_vt = array(P_vt)
     # chop off top and bottom row, cause, they skew the colors
-    print shape(y)
-    imshow(rot90(y)[1:-2,:])
+    # rot 90, to prepare for imshow()
+    P_vt = rot90(P_vt)[1:-2,:]
 
-    colorbar()
-    figure()
-    plot(first_passage_time[:final_t_max])
-    show()
+    return P_vt, traces, fpt
+
+
 
 @print_timing
-def monte_carlo_fpt(reps=500,t_max=400):
+def mc_fpt(reps=500,t_max=400):
     """ compute only first passage time using monte carlo """
     print "computing monte carlo based first passage time now"
     print "using" , reps,"replications "
@@ -84,3 +72,5 @@ def monte_carlo_fpt(reps=500,t_max=400):
     return fpt/reps
 
 
+if __name__ == '__main__':
+    pass

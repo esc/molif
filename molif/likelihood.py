@@ -62,3 +62,5 @@ def try_opt():
     #print xopt
 
 
+if __name__ == '__main__':
+    print "Loaded molif.optimize "

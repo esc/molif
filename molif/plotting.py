@@ -9,7 +9,7 @@
 # To Public License, Version 2, as published by Sam Hocevar. See
 # http://sam.zoy.org/wtfpl/COPYING for more details. 
 
-from pylab import imshow, figure, plot, show, colorbar
+from pylab import imshow, figure, plot, show, colorbar, hold
 from numpy import flipud, cumsum
 
 from density import *
@@ -25,10 +25,28 @@ def pde_density_and_fpt():
     plot(fpt)
     show()
 
-def plot_monte_carlo_fpt():
+def plot_mc_P_vt_fpt():
+    """ compute and plot monte carlo density evolution and first
+    passage time"""
 
-    mc_fpt = monte_carlo_fpt(reps=5000)
-    plot(mc_fpt)
+    P_vt, traces, fpt =  mc_P_vt_fpt()
+
+    imshow(P_vt)
+    colorbar()
+
+    figure()
+    hold(True)
+    for t in traces:  plot(t)
+
+    figure()
+    plot(fpt)
+    show()
+
+
+def plot_mc_fpt():
+    """ compute and plot the monte carlo first passage time """
+    fpt = mc_fpt(reps=5000)
+    plot(fpt)
     show()
 
 
@@ -36,7 +54,7 @@ def compare_pde_mc_fpt():
     """ compare the partial differental equation and monte carlo first
     passage time """
 
-    mc_fpt = monte_carlo_fpt(reps=5000)
+    mc_fpt = mc_fpt(reps=5000)
     P_vt, pde_fpt = compute_pde_fpt()
 
     D,p = stats.ks_2samp(mc_fpt,pde_fpt)
@@ -52,4 +70,5 @@ def compare_pde_mc_fpt():
 
 
 
-
+if __name__ == '__main__':
+    pass
