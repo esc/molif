@@ -5,6 +5,8 @@ integrate Paninski 2008 into the general framework
 migrate the last piece of code from software/lnlif.py into molif
 package
 accelerate the optimizer
+debug the optimizer, generated parameters aren't fitted parameters
+i.e. the optimizer doesn't converge as we would expect it to
 the definition of I_hist isn't fully implemented
 fix the implementation of the kernel
 
