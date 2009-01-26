@@ -1,3 +1,5 @@
+CODE
+
 pylint  the code
 write at least some unit tests
 check pydocs
@@ -12,4 +14,9 @@ fix the implementation of the kernel
 fix the fact that the pde and mc fpt cdf aren't from the same
 distribution according to K-S test
 
+DOC
+
+finish description of how to compute the likelihood
+add some nice diagrams, like fpt P_vt and so on (don't forget labels)
+fix the "inserted $ bug" 
 
