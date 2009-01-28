@@ -14,6 +14,20 @@ Fokker-Plank for L-NLIF Model in Python}
 
 \maketitle
 
+\section{Introduction}
+
+This report contains a description of the work done by Valentin Haenel
+for a Lab Rotation within the Bernstein Center for Computational
+Neuroscience in Berlin. The rotation was done in the lab of Gabriel
+Curio under the supervision of Bartosz Telenczuck. 
+
+Throughout the project i have implemented a variant of the Leakyy
+Integrate and Fire Neuron, and a method to fit the parameters of this
+neuron using a model of the input and extracellularly recorded spikes.
+This involved solving a partial differential equation and constructing
+a maximum likelihood objective function. 
+
+
 \section{Model}
 The original model is a L-NLIF model, which consists of a Linear
 (L) Filter, followed by a probabilistic or Noisy (N) form of Leaky
@@ -22,46 +36,38 @@ al.\cite{PaninskiPillowSimoncelli}). For sake of completeness the
 model is briefly described here.
 
 The evolution of the Voltage $V$ is given by:
-
 \begin{equation}
     dV = (-g(V(t) -V_{leak}) +I_{stim}(t) + I_{hist}(t)) dt + W_{t}
 \end{equation}
-
 Where $g$ is the leak conductance $V_{leak}$ is the leak reversal
 potential $I_{stim}$ is the convolution of linear filter with the
 input signal, $I_{hist}$ is the spike current history and $W_t$ is
 standard Gaussian white noise. More precisely:
-
 \begin{equation}
     I_{stim}(t) = \vec{k} \dot \vec{x}(t)
 \end{equation}
-
-and
-
 \begin{equation}
     I_{hist}(t) = \sum_{j=0}^{i-1}h(t-t_j)
 \end{equation}
-
 Where $k$ is a linear filter and $h$ is a fixed postspike current waveform. 
 
+\section{Algorithms}
 
+This section describes the algorithms employed.
 
-\section{Density Evolution}
+\subsection{PDE Solver}
 
-
+\subsubsection{The Problem}
 If we define 
-
 \begin{equation}
     P(V,t) \equiv P(V(t) \cap  V(s) < V_{th} \forall s < t)
 \end{equation}
 This refers to the probability of $V(t)$, the membrane potential,
 being less than $V_{th}$ the firing threshold until time $t$.  
 
-
-
-We need to solve the following Fokker-Planck drift diffusion equation
-numerically.
-
+As stated in \cite{PaninskiPillowSimoncelli} we need to solve the
+following Fokker-Planck drift diffusion equation numerically, and
+hence this method is called PDE Solver.
 \begin{equation}
     \frac{\partial P(V,t)}{\partial t} =
     \frac{\sigma^2}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
@@ -69,24 +75,19 @@ numerically.
 \end{equation}
 
 Given the boundary conditions:
- 
 \begin{equation}
     P(V_{th},t) = 0
 \end{equation}
-
 \begin{equation}
     P(V,0) = \delta(V-V_{reset})
 \end{equation}
 
-when solving numerically we also need a lower bound on the
+When solving numerically we also need a lower bound on the
 voltage $V_{lb}$, so this becomes an additional boundary condition:
-
 \begin{equation}
     P(V_{lb},t) = 0 
 \end{equation}
-
 Ideally $V_{lb} = -\infty $
-
 And the definition of $V_{rest}$.
 \begin{equation}
     V_{rest}(t) = V_{leak} + \frac{1}{g}(\vec{k} \cdot \vec{x}(t)
@@ -95,7 +96,6 @@ And the definition of $V_{rest}$.
 
 
 We can rewrite this as:
-
 \begin{equation}
     \frac{\sigma^2}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
     g(V-V_{rest})\frac{\partial P(V,t)}{\partial V} +
@@ -103,56 +103,45 @@ We can rewrite this as:
     \frac{\partial P(V,t)}{\partial t} = 
     0
 \end{equation}
-
 Since we know that:
-
 \begin{equation}
     \frac{\partial[(V-V_{rest})P(V,t)]}{\partial V} =
     \frac{\partial (V-V_{rest})}{\partial V} \dot P +
     \frac{\partial P}{\partial V} \dot (V-V_{rest})
 \end{equation}
-
 and
-
 \begin{equation}
     \frac{\partial (V-V_{rest})}{\partial V} = 1
 \end{equation}
 
+\subsubsection{Finite Differencing}
 
 Next we discretize time and potential. We adopt the notation that
 Potential is discretized into $W$ intervals of length $w$ and indexed
 by $\nu= 0,1, \dots W $.  Time is discretized  into $U$ intervals of
 length $u$ and indexed by: $\tau= 0,1, \dots U $.
-
-
-
 $P_{\nu,\tau} = P(\nu w,\tau u)$
 
 Before we can write down the computationally stable Crank-Nicolson
-method we must first write down our finite differencing scheme:
-
+method \cite{press} we must first write down our finite differencing scheme:
 \begin{equation}
     \hat{P} = P_{\nu,\tau}
 \end{equation}
-
 \begin{equation}
     \frac{\partial \hat{P}}{\partial t} = \frac{P_{\nu,\tau +1 } -
     P_{\nu,\tau}}{u}
 \end{equation}
-
 \begin{equation}
     \frac{\partial \hat{P}}{\partial V} = 
     \frac{P_{\nu +1,\tau } -
     P_{\nu - 1,\tau } }
     {2w}
 \end{equation}
-
 \begin{equation}
     \frac{\partial^2 \hat{P}}{\partial V^2} = 
     \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau}}
     {w^2}
 \end{equation}
-
 
 Using the Crank-Nicolson scheme we  may now rewrite the derivatives
 using a new finite differencing scheme which is centered around $t +
@@ -165,19 +154,16 @@ an approximation we get:
 \begin{equation}
     P_{CN} = \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2}
 \end{equation}
-
 \begin{equation}
     \frac{\partial P_{CN}}{\partial t} = \frac{P_{\nu,\tau +1 } -
     P_{\nu,\tau}}{u}
 \end{equation}
-
 \begin{equation}
     \frac{\partial P_{CN}}{\partial V} = 
     \frac{P_{\nu +1,\tau } + P_{\nu +1,\tau +1 } -
     P_{\nu - 1,\tau } - P_{\nu -1,\tau +1}} 
     {4w}
 \end{equation}
-
 \begin{equation}
     \frac{\partial^2 P_{CN}}{\partial V^2} = 
     \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau} +
@@ -185,18 +171,16 @@ an approximation we get:
     {2w^2}
 \end{equation}
 
-if we now let:
+\subsubsection{Tridiagonal Equations}
 
+If we now let:
 \begin{align*}
 a &= \frac{\sigma^2}{2} \\
 b &= g(V - V_{rest}) \\
 c &= g \\
 \end{align*}
-
 and multiply throughout with $4w^2u$
-
 we may rearrange all the $P_{*,\tau+1} $ terms on the left hand side:
-
 \begin{multline}
     \overbrace{-(2au+bwu)}^{A_\nu} P_{\nu+1,\tau+1} + 
     \overbrace{(4au - 2cw^2u + 4w^2)}^{B_\nu} P_{\nu,\tau+1}
@@ -206,13 +190,10 @@ we may rearrange all the $P_{*,\tau+1} $ terms on the left hand side:
     (-4au +2cw^2u + 4w^2) P_{\nu,\tau} + 
     (2au-bwu) P_{\nu-1,\tau}}_{D_{\nu}}
 \end{multline}
-
 For each $ \nu = 1 , \dots , W-1 $
 
 We note here that we have obtained $W-1$ simultaneous equations which
 we may now rewrite in the following tridiagonal matrix notation.
-
-
 \begin{equation}
 \underbrace{
 \begin{pmatrix}
@@ -244,15 +225,15 @@ we may now rewrite in the following tridiagonal matrix notation.
 \end{pmatrix}}_{\beta}
 \end{equation}
 
-
-
 However this matrix equation has W+1 equations, so we must use the
 boundary conditions to specify the first and last rows of $\Lambda$.
 We can then use a tridiagonal matrix algorithm to solve $\Lambda \chi
 = \beta$.
 
-This allows us to iteratively obtain the density evolution of the
+This allows us to iteratively obtain the density evolution $P(V,t)$ of the
 membrane potential for a given time interval.
+
+\subsection{First Passage Time}
 
 The maximum likelihood optimizer proposed in
 \cite{PaninskiPillowSimoncelli} however uses the first passage time
@@ -265,6 +246,10 @@ density at a given time point which is defined as:
 and this can be easily computed from an $P(V,t)$ matrix by summing
 across $P$ and finding differences across $t$.
 
+\subsection{Maximum Likelihood Estimator}
+
+Putting together the PDE Solver and method for computing the First
+Passage Time 
 The final likelihood is then simply
 
 \begin{equation}
@@ -274,32 +259,97 @@ The final likelihood is then simply
 
 The pseudocode for the objective function can be described as follows:
 
-for each spike interval
+for each spike interval do:
 \begin{enumerate}
     \item compute $P(V,t)$ as matrix
     \item compute $fpt$ as vector
-    \item compute the product of the last scalar in the $fpt$ vector
 \end{enumerate}
+return the product of the last scalars in the $fpt$ vectors.
+
+This objective function could be presented to a standard numerical
+optimizer, for example the Nelder-Mead Downhill simplex \cite{press},
+this needs no gradients and is fairly robust but slow.
+
+\subsection{Monte Carlo Method}
+
+To double check the results of the PDE Solver and the resulting First
+Passage Time , we additionally implemented some basic monte carlo
+simulations. This did not involve much more than simulating a few
+thousand single spike runs of our model, with noise. The resulting
+potential traces, and spike times were used to obtain both $P(V,t)$
+and $fpt$. The density evolution is compared qualitatively and the
+$fpt$ is compared using a Kolmogorov-Smirnov (K-S) test\cite{press}.
+
 
 \section{Implementation}
+
+This section describes the concrete implemenation
 
 \subsection{Availability and Design}
 
 The algorithm has been implemented in Python, and the full source code
 has been made available within a revision control system under a free
-software license at: http://github.com/esc/molif/tree/master. 
+software license at: http://github.com/esc/molif/tree/master. The name
+of the project is {\it Meaning Of LIF}, abbreviated to {\it molif}
+which is a reference to the Monty Python movie {\it Meaning of Life}.
+The name was chosen one the one hand because we think its funny, and
+secondly to underline one more time, that Python isn't about snakes.
+
 
 The software is structured into a series of modules, one for the neuron model,
 one for the pde solver, one to minimize the negative likelihood, one for monte
 carlo simulation and a utility module.
 
+The software uses the additional packages numpy, scipy for vector
+based and scientific computing, and pylab/matplotlib for plotting the
+results. We used the modules {\it scipy.sparse} and {\it
+scipy.linsolve} for computing the solution to tridiagonal equations, and the
+method {\it optimize.fmin}, which implements the Nelder-Mead Downhill
+Simplex, for minimizing the negative likelihood.
+
+
 \subsection{Limitations and Future Work}
 
 The PDE solver uses sparse matrix algorithms to store and solve the
 tridiagonal matrix. Ideally we would like to use the routine $TRIDAG$
-described in \cite{press}, however an open source implementation in python was not available.  
+described in \cite{press}, however an open source implementation in
+python was not available, although feasible. This improvement could
+possibly speed up the computation of $P(V,t)$.
 
-There is a strange bug in the PDE solver, where the value of sigma, must be within a specific range of $0.1 - 0.001$
+There is a serious bug, whereby the value of sigma,
+must be within a specific range of $0.1 - 0.05$, otherwise strange
+oscillatory instabilities occur. Among the possible causes, are a
+numerical instability in the finite differencing scheme, a bug in our
+code, a bug in the solver for the linear equations or the
+discretization of $P$ and $t$ being to large. 
+
+Currently the gradient of the objective function isn't implemented,
+and any gradient based optimizer would need to compute their
+approximation from the function values. 
+
+We used a Kolmogorov-Smirnov (K-S) test to check that the first
+passage time computed by the pde-solver and the monte carlo method
+come from the same distribution. However the test currently returns a
+negative result, although at first glance the distributions look very
+similar. 
+
+Lastly we should mention that the objective function isn't fully
+operational yet. A simple test is executed as follows: first we
+generate some spikes with given parameters, and then we attempt to fit
+parameters to these spikes. If the code operates correctly the
+optimizer should not deviate away from the initial paramters vector.
+However currently this is not the case and the optimizer finds a
+minimum at a different position in parameter space. 
+
+\subsection{Conclusion}
+
+Not all of the initial Porject Goals were reached to my full
+satisfaction. We did implement an Integrate and Fire
+neuron, and a method to fit the parameters, however we did not get as
+far as actually fitting real experimental data. None the less 
+useful code has been produced and solid numerical techniques (Solving
+Partial Differential Equations) were
+learnt, and I consider the lab rotation to be successful. 
 
 \bibliography{documentation}{ \bibliographystyle{abbrv} }
 
