@@ -64,7 +64,7 @@ class pde_solver():
         """
         print "computing fpt for all intervals, total: ", \
         len(self.lif.spikes)
-        likelihood = 0
+        likelihood = 1
         for i in xrange(1,len(self.lif.spikes)):
             if i%10==0 : print "interval: " , i
             # for each ISI
@@ -76,7 +76,7 @@ class pde_solver():
                 print "spike_times", self.lif.spikes
 
             P_vt =  self.pde_interval(start,end)
-            likelihood += self.P_vt_to_fpt(P_vt)[-1]
+            likelihood *= self.P_vt_to_fpt(P_vt)[-1]
             del P_vt
         
         return likelihood
