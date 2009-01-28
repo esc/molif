@@ -54,17 +54,17 @@ def compare_pde_mc_fpt():
     """ compare the partial differental equation and monte carlo first
     passage time """
 
-    mc_fpt = mc_fpt(reps=5000)
+    mc_fpt_val = mc_fpt(reps=5000)
     P_vt, pde_fpt = compute_pde_fpt()
 
-    D,p = stats.ks_2samp(mc_fpt,pde_fpt)
+    D,p = stats.ks_2samp(mc_fpt_val,pde_fpt)
     print "K-S test D value: " , D
     print "K-S test p value: " , p
-    plot(mc_fpt,'r')
+    plot(mc_fpt_val,'r')
     plot(pde_fpt,'g')
     figure()
 
-    plot(cumsum(mc_fpt),'r')
+    plot(cumsum(mc_fpt_val),'r')
     plot(cumsum(pde_fpt),'g')
     show()
 

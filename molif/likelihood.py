@@ -34,13 +34,16 @@ def mle(variables,lif,V_lb,W,spikes,ids):
 
     p = pde_solver(lif,W,V_lb)
     likelihood = p.compute_product_fpt()
+    print "likelihood", likelihood
     del p
-    return likelihood
+    return likelihood * -1.0
 
 @print_timing
 def try_opt():
     print "trying optimizer"
     # create the neuron
+    # for testing purposes this has less spikes than our normal
+    # lif_setup
 
     lif = lnlif(t_max=25) # init model
     lif.set_const_input(0.5); # set constant input
