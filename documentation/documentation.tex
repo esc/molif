@@ -85,7 +85,7 @@ voltage $V_{lb}$, so this becomes an additional boundary condition:
     P(V_{lb},t) = 0 
 \end{equation}
 
-Ideally $V_{lb} = -\\infty $
+Ideally $V_{lb} = -\infty $
 
 And the definition of $V_{rest}$.
 \begin{equation}
@@ -293,9 +293,13 @@ The software is structured into a series of modules, one for the neuron model,
 one for the pde solver, one to minimize the negative likelihood, one for monte
 carlo simulation and a utility module.
 
+\subsection{Limitations and Future Work}
+
 The PDE solver uses sparse matrix algorithms to store and solve the
 tridiagonal matrix. Ideally we would like to use the routine $TRIDAG$
 described in \cite{press}, however an open source implementation in python was not available.  
+
+There is a strange bug in the PDE solver, where the value of sigma, must be within a specific range of $0.1 - 0.001$
 
 \bibliography{documentation}{ \bibliographystyle{abbrv} }
 
