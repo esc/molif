@@ -271,15 +271,32 @@ The final likelihood is then simply
     L_{\vec{x},t_{i}} = \Pi_{i} fpt(t_{i})
 \end{equation}
 
-\bibliography{documentation}{ \bibliographystyle{abbrv} }
 
 The pseudocode for the objective function can be described as follows:
 
+for each spike interval
 \begin{enumerate}
-        for each spike interval
     \item compute $P(V,t)$ as matrix
     \item compute $fpt$ as vector
     \item compute the product of the last scalar in the $fpt$ vector
 \end{enumerate}
+
+\section{Implementation}
+
+\subsection{Availability and Design}
+
+The algorithm has been implemented in Python, and the full source code
+has been made available within a revision control system under a free
+software license at: http://github.com/esc/molif/tree/master. 
+
+The software is structured into a series of modules, one for the neuron model,
+one for the pde solver, one to minimize the negative likelihood, one for monte
+carlo simulation and a utility module.
+
+The PDE solver uses sparse matrix algorithms to store and solve the
+tridiagonal matrix. Ideally we would like to use the routine $TRIDAG$
+described in \cite{press}, however an open source implementation in python was not available.  
+
+\bibliography{documentation}{ \bibliographystyle{abbrv} }
 
 \end{document}
