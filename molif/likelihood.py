@@ -34,6 +34,7 @@ def mle(variables,lif,V_lb,W,spikes,ids):
 
     p = pde_solver(lif,W,V_lb)
     likelihood = p.compute_product_fpt()
+    print "likelihood", likelihood
     del p
     return likelihood * -1.0
 
