@@ -19,7 +19,7 @@ The original model is a L-NLIF model, which consists of a Linear
 (L) Filter, followed by a probabilistic or Noisy (N) form of Leaky
 Integrate and Fire spike generation(LIF) (Paninski et
 al.\cite{PaninskiPillowSimoncelli}). For sake of completeness the
-model is described here.
+model is briefly described here.
 
 The evolution of the Voltage $V$ is given by:
 
@@ -85,7 +85,7 @@ voltage $V_{lb}$, so this becomes an additional boundary condition:
     P(V_{lb},t) = 0 
 \end{equation}
 
-Ideally $V_{lb} 
+Ideally $V_{lb} = -\\infty $
 
 And the definition of $V_{rest}$.
 \begin{equation}
@@ -252,8 +252,34 @@ We can then use a tridiagonal matrix algorithm to solve $\Lambda \chi
 = \beta$.
 
 This allows us to iteratively obtain the density evolution of the
-membrane potential.
+membrane potential for a given time interval.
+
+The maximum likelihood optimizer proposed in
+\cite{PaninskiPillowSimoncelli} however uses the first passage time
+density at a given time point which is defined as:
+
+\begin{equation}
+    fpt(t) = -\frac{\partial}{\partial t} \int P(V,t)dV
+\end{equation}
+
+and this can be easily computed from an $P(V,t)$ matrix by summing
+across $P$ and finding differences across $t$.
+
+The final likelihood is then simply
+
+\begin{equation}
+    L_{\vec{x},t_{i}} = \Pi_{i} fpt(t_{i})
+\end{equation}
 
 \bibliography{documentation}{ \bibliographystyle{abbrv} }
+
+The pseudocode for the objective function can be described as follows:
+
+\begin{enumerate}
+        for each spike interval
+    \item compute $P(V,t)$ as matrix
+    \item compute $fpt$ as vector
+    \item compute the product of the last scalar in the $fpt$ vector
+\end{enumerate}
 
 \end{document}
