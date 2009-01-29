@@ -339,7 +339,26 @@ generate some spikes with given parameters, and then we attempt to fit
 parameters to these spikes. If the code operates correctly the
 optimizer should not deviate away from the initial paramters vector.
 However currently this is not the case and the optimizer finds a
-minimum at a different position in parameter space. 
+minimum at a different position in parameter space.
+
+\subsection{Images}
+
+This section presents some plots.
+
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=0.75]{P_vt}
+\caption{Density Evolution, Top = partial differential equation,
+Bottom = Monte Carlo method. X-Axis is time, Y-Axis is potential and
+should go from 0 to 1}
+\end{figure}
+
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=0.75]{fpt.png}
+\caption{First Passage Time, Green = partial differential equation,
+red = monte carlo, x-axis is time, y axis is probability. }
+\end{figure}
 
 \subsection{Conclusion}
 
