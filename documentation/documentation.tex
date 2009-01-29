@@ -124,24 +124,21 @@ $P_{\nu,\tau} = P(\nu w,\tau u)$
 
 Before we can write down the computationally stable Crank-Nicolson
 method \cite{press} we must first write down our finite differencing scheme:
-\begin{equation}
-    \hat{P} = P_{\nu,\tau}
-\end{equation}
-\begin{equation}
-    \frac{\partial \hat{P}}{\partial t} = \frac{P_{\nu,\tau +1 } -
-    P_{\nu,\tau}}{u}
-\end{equation}
-\begin{equation}
-    \frac{\partial \hat{P}}{\partial V} = 
+\begin{eqnarray}
+    \hat{P} =& P_{\nu,\tau} \\
+%
+    \frac{\partial \hat{P}}{\partial t} =& \frac{P_{\nu,\tau +1 } -
+    P_{\nu,\tau}}{u} \\
+%
+    \frac{\partial \hat{P}}{\partial V} =& 
     \frac{P_{\nu +1,\tau } -
     P_{\nu - 1,\tau } }
-    {2w}
-\end{equation}
-\begin{equation}
-    \frac{\partial^2 \hat{P}}{\partial V^2} = 
+    {2w} \\
+%
+    \frac{\partial^2 \hat{P}}{\partial V^2} =& 
     \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau}}
-    {w^2}
-\end{equation}
+    {w^2} 
+\end{eqnarray}
 
 Using the Crank-Nicolson scheme we  may now rewrite the derivatives
 using a new finite differencing scheme which is centered around $t +
@@ -151,25 +148,22 @@ an approximation we get:
 % Note: need to introduce other notation for P otherwise you cannot
 % distinguish between the new and old one
 
-\begin{equation}
-    P_{CN} = \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2}
-\end{equation}
-\begin{equation}
-    \frac{\partial P_{CN}}{\partial t} = \frac{P_{\nu,\tau +1 } -
-    P_{\nu,\tau}}{u}
-\end{equation}
-\begin{equation}
-    \frac{\partial P_{CN}}{\partial V} = 
+\begin{eqnarray}
+    P_{CN} =& \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2} \\
+    %
+    \frac{\partial P_{CN}}{\partial t} =& \frac{P_{\nu,\tau +1 } -
+    P_{\nu,\tau}}{u} \\
+    %
+    \frac{\partial P_{CN}}{\partial V} =&
     \frac{P_{\nu +1,\tau } + P_{\nu +1,\tau +1 } -
     P_{\nu - 1,\tau } - P_{\nu -1,\tau +1}} 
-    {4w}
-\end{equation}
-\begin{equation}
-    \frac{\partial^2 P_{CN}}{\partial V^2} = 
+    {4w} \\
+    %
+    \frac{\partial^2 P_{CN}}{\partial V^2} =&
     \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau} +
     P_{\nu+1,\tau+1} - 2 P_{\nu,\tau+1} + P_{\nu-1,\tau+1}}
-    {2w^2}
-\end{equation}
+    {2w^2} 
+\end{eqnarray}
 
 \subsubsection{Tridiagonal Equations}
 
