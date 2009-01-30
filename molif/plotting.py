@@ -9,7 +9,8 @@
 # To Public License, Version 2, as published by Sam Hocevar. See
 # http://sam.zoy.org/wtfpl/COPYING for more details. 
 
-from pylab import imshow, figure, plot, show, colorbar, hold
+from pylab import imshow, figure, plot, show, colorbar, hold, \
+xlabel, ylabel, legend
 from numpy import flipud, cumsum
 
 from density import *
@@ -60,8 +61,13 @@ def compare_pde_mc_fpt():
     D,p = stats.ks_2samp(mc_fpt_val,pde_fpt)
     print "K-S test D value: " , D
     print "K-S test p value: " , p
-    plot(mc_fpt_val,'r')
-    plot(pde_fpt,'g')
+    plot(mc_fpt_val,'r',label='Monte Carlo')
+    plot(pde_fpt,'g',label='PDE Solver')
+    xlabel('time')
+    ylabel('fpt')
+    legend()
+
+
     figure()
 
     plot(cumsum(mc_fpt_val),'r')
@@ -71,4 +77,4 @@ def compare_pde_mc_fpt():
 
 
 if __name__ == '__main__':
-    pass
+    compare_pde_mc_fpt()
