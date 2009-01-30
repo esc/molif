@@ -369,20 +369,30 @@ minimum at a different position in parameter space.
 
 This section presents some plots.
 
+Figure \ref{P_vt} shows the comparison of PDE Solver and Monte Carlo
+method when computing the density evolution. The slight difference in angle may,
+unfortunately, be a bug in the code.
+
+Figure \ref{fpt} shows the comparison of the PDE Solver and Monte
+Carlo method when computing the first passage time. Unfortunately a
+K-S test allows us to reject the hypothesis that these two come from
+the same distribution, even though they look very much alike at a
+first glance.
+
 \begin{figure}[htp]
 \centering
 \includegraphics[scale=0.60]{P_vt}
-\caption{Density Evolution, Top = partial differential equation,
-Bottom = Monte Carlo method. X-Axis is time, Y-Axis is potential and
-should go from 0 to 1}
+\caption{Density Evolution}
+\caption{Top = partial differential equation}
+\caption{Bottom = Monte Carlo method}
 \label{P_vt}
 \end{figure}
 
 \begin{figure}[htp]
 \centering
 \includegraphics[scale=0.60]{fpt.png}
-\caption{First Passage Time, Green = partial differential equation,
-red = monte carlo, x-axis is time, y axis is probability. }
+\caption{First Passage Time Comparison}
+\label{fpt}
 \end{figure}
 
 \subsection{Conclusion}
