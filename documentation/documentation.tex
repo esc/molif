@@ -1,6 +1,7 @@
 \documentclass[10pt]{article}
 \usepackage[pdftex]{graphicx}
 \usepackage{amssymb, amsmath}
+\usepackage{url}
 
 \usepackage{fullpage}
 \setlength{\parindent}{0pt}
@@ -8,7 +9,9 @@
 
 \title{Implementation of the Density Evolution method with
 Fokker-Plank for L-NLIF Model in Python}
-\author{Valentin Haenel}
+\author{Valentin Haenel \\
+valentin.haenel@gmx.de \\
+BCCN Berlin}
 
 \begin{document} 
 
@@ -16,15 +19,15 @@ Fokker-Plank for L-NLIF Model in Python}
 
 \section{Introduction}
 
-This report contains a description of the work done by Valentin Haenel
+This report is a description of the work done by Valentin Haenel
 for a Lab Rotation within the Bernstein Center for Computational
-Neuroscience in Berlin. The rotation was done in the lab of Gabriel
+Neuroscience in Berlin. The rotation was completed in the lab of Gabriel
 Curio under the supervision of Bartosz Telenczuck. 
 
-Throughout the project i have implemented a variant of the Leakyy
-Integrate and Fire Neuron, and a method to fit the parameters of this
+Throughout the project I have implemented a variant of the Leaky
+Integrate and Fire Neuron(LIF), and a method to fit the parameters of this
 neuron using a model of the input and extracellularly recorded spikes.
-This involved solving a partial differential equation and constructing
+Primarily this involved solving a partial differential equation and constructing
 a maximum likelihood objective function. 
 
 
@@ -44,7 +47,7 @@ potential $I_{stim}$ is the convolution of linear filter with the
 input signal, $I_{hist}$ is the spike current history and $W_t$ is
 standard Gaussian white noise. More precisely:
 \begin{equation}
-    I_{stim}(t) = \vec{k} \dot \vec{x}(t)
+    I_{stim}(t) = \vec{k} \cdot  \vec{x}(t) 
 \end{equation}
 \begin{equation}
     I_{hist}(t) = \sum_{j=0}^{i-1}h(t-t_j)
@@ -58,44 +61,59 @@ This section describes the algorithms employed.
 \subsection{PDE Solver}
 
 \subsubsection{The Problem}
-If we define 
+Let 
 \begin{equation}
     P(V,t) \equiv P(V(t) \cap  V(s) < V_{th} \forall s < t)
 \end{equation}
 This refers to the probability of $V(t)$, the membrane potential,
 being less than $V_{th}$ the firing threshold until time $t$.  
 
-As stated in \cite{PaninskiPillowSimoncelli} we need to solve the
-following Fokker-Planck drift diffusion equation numerically, and
-hence this method is called PDE Solver.
+As stated in \cite{PaninskiPillowSimoncelli} the method of density
+evolution requires us to solve the
+following Fokker-Planck drift diffusion equation numerically.
 \begin{equation}
     \frac{\partial P(V,t)}{\partial t} =
     \frac{\sigma^2}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
     g\frac{\partial[(V-V_{rest})P(V,t)]}{\partial V}
+    \label{fokkerplanck}
 \end{equation}
 
-Given the boundary conditions:
+We will be solving the evolution of the probability density for a
+given inter spike interval(ISI). And therefor we will constrain the range
+of $V$ and $t$.
 \begin{equation}
     P(V_{th},t) = 0
+    \label{boundarytop}
 \end{equation}
 \begin{equation}
     P(V,0) = \delta(V-V_{reset})
+    \label{boundaryleft}
 \end{equation}
 
-When solving numerically we also need a lower bound on the
-voltage $V_{lb}$, so this becomes an additional boundary condition:
+Condition (\ref{boundarytop}) ensures that the probability of obtaining a spike
+during an ISI is zero. Condition (\ref{boundaryleft}) ensures
+that at the beginning of an ISI, i.e. at the time of the last spike,
+the probability of the neuron being at reset potential is exactly one.
+Thereby we have obtained the constraints for the top and the left had
+side of our solution grid, however, when solving numerically we also
+need a lower bound on the voltage $V_{lb}$, so this becomes an
+additional boundary condition, for the  bottom:
 \begin{equation}
     P(V_{lb},t) = 0 
+    \label{boundarybottom}
 \end{equation}
-Ideally $V_{lb} = -\infty $
-And the definition of $V_{rest}$.
+
+Ideally $V_{lb} = -\infty $.
+
+$V_{rest}$ is defined as the stationary point of the noiseless
+subthreshold dynamics:
 \begin{equation}
     V_{rest}(t) = V_{leak} + \frac{1}{g}(\vec{k} \cdot \vec{x}(t)
     \sum_{j=0}^{i-1}h(t-t_j))
 \end{equation}
 
 
-We can rewrite this as:
+We can rewrite (\ref{fokkerplanck}) as:
 \begin{equation}
     \frac{\sigma^2}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
     g(V-V_{rest})\frac{\partial P(V,t)}{\partial V} +
@@ -106,8 +124,8 @@ We can rewrite this as:
 Since we know that:
 \begin{equation}
     \frac{\partial[(V-V_{rest})P(V,t)]}{\partial V} =
-    \frac{\partial (V-V_{rest})}{\partial V} \dot P +
-    \frac{\partial P}{\partial V} \dot (V-V_{rest})
+    \frac{\partial (V-V_{rest})}{\partial V}  P +
+    \frac{\partial P}{\partial V} (V-V_{rest})
 \end{equation}
 and
 \begin{equation}
@@ -116,14 +134,14 @@ and
 
 \subsubsection{Finite Differencing}
 
-Next we discretize time and potential. We adopt the notation that
-Potential is discretized into $W$ intervals of length $w$ and indexed
+In order to solve (\ref{fokkerplanck}) numerically we discretize time
+and potential. We adopt the notation that Potential is discretized
+into $W$ intervals of length $w$ and indexed
 by $\nu= 0,1, \dots W $.  Time is discretized  into $U$ intervals of
 length $u$ and indexed by: $\tau= 0,1, \dots U $.
-$P_{\nu,\tau} = P(\nu w,\tau u)$
+We adopt the notation: $P_{\nu,\tau} = P(\nu w,\tau u)$
 
-Before we can write down the computationally stable Crank-Nicolson
-method \cite{press} we must first write down our finite differencing scheme:
+A forward finite differencing scheme would like:
 \begin{eqnarray}
     \hat{P} =& P_{\nu,\tau} \\
 %
@@ -140,13 +158,10 @@ method \cite{press} we must first write down our finite differencing scheme:
     {w^2} 
 \end{eqnarray}
 
-Using the Crank-Nicolson scheme we  may now rewrite the derivatives
-using a new finite differencing scheme which is centered around $t +
-u/2$. Bearing in mind that this is only
-an approximation we get:
-
-% Note: need to introduce other notation for P otherwise you cannot
-% distinguish between the new and old one
+However as suggested in \cite{PaninskiHaithSzirtes} we will use the
+computationally more stable Crank-Nicolson scheme\cite{press}.  
+We rewrite the derivatives using the new scheme which is centered around $t +
+u/2$.
 
 \begin{eqnarray}
     P_{CN} =& \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2} \\
@@ -183,10 +198,11 @@ we may rearrange all the $P_{*,\tau+1} $ terms on the left hand side:
     \underbrace{(2au+bwu) P_{\nu+1,\tau} +  
     (-4au +2cw^2u + 4w^2) P_{\nu,\tau} + 
     (2au-bwu) P_{\nu-1,\tau}}_{D_{\nu}}
+    \label{rearrange}
 \end{multline}
 For each $ \nu = 1 , \dots , W-1 $
 
-We note here that we have obtained $W-1$ simultaneous equations which
+Using (\ref{rearrange}) we have obtained $W-1$ simultaneous equations which
 we may now rewrite in the following tridiagonal matrix notation.
 \begin{equation}
 \underbrace{
@@ -220,12 +236,16 @@ we may now rewrite in the following tridiagonal matrix notation.
 \end{equation}
 
 However this matrix equation has W+1 equations, so we must use the
-boundary conditions to specify the first and last rows of $\Lambda$.
+boundary conditions (\ref{boundarytop}) and
+(\ref{boundarybottom}) to specify the first and last rows of $\Lambda$.
 We can then use a tridiagonal matrix algorithm to solve $\Lambda \chi
-= \beta$.
+= \beta$. This allows us to iteratively obtain the density evolution $P(V,t)$ of the
+membrane potential for a given ISI. Where the initial $\beta$ for an ISI is given by
+(\ref{boundaryleft}) and the halting criterion is the time of the next
+spike. So for the $i$th spike we obtain values for $V$ in the range
+$[V_{lb}, V_{th}]$ and for $t$ in the range $[t_{i-1},t_{i}]$. An
+example can be seen in figure \ref{P_vt}.
 
-This allows us to iteratively obtain the density evolution $P(V,t)$ of the
-membrane potential for a given time interval.
 
 \subsection{First Passage Time}
 
@@ -250,15 +270,18 @@ The final likelihood is then simply
     L_{\vec{x},t_{i}} = \Pi_{i} fpt(t_{i})
 \end{equation}
 
+This is the product of the first passage time at the times of
+spiking for all spikes.
 
 The pseudocode for the objective function can be described as follows:
 
+{\tt
 for each spike interval do:
 \begin{enumerate}
     \item compute $P(V,t)$ as matrix
     \item compute $fpt$ as vector
 \end{enumerate}
-return the product of the last scalars in the $fpt$ vectors.
+return the product of the last scalars in the $fpt$ vectors.}
 
 This objective function could be presented to a standard numerical
 optimizer, for example the Nelder-Mead Downhill simplex \cite{press},
@@ -283,16 +306,23 @@ This section describes the concrete implemenation
 
 The algorithm has been implemented in Python, and the full source code
 has been made available within a revision control system under a free
-software license at: http://github.com/esc/molif/tree/master. The name
-of the project is {\it Meaning Of LIF}, abbreviated to {\it molif}
-which is a reference to the Monty Python movie {\it Meaning of Life}.
-The name was chosen one the one hand because we think its funny, and
-secondly to underline one more time, that Python isn't about snakes.
+software license at: http://github.com/esc/molif/tree/master. Given
+that the Python Language was named after the British Comedians Monty
+Python we decided to call the software {\it Meaning Of LIF},
+(abbreviated to {\it molif}) which is a reference to the Monty Python
+movie {\it Meaning of Life}. 
 
+The software is structured into a series of modules contained within
+the package {\tt molif} 
 
-The software is structured into a series of modules, one for the neuron model,
-one for the pde solver, one to minimize the negative likelihood, one for monte
-carlo simulation and a utility module.
+\begin{itemize}
+    \item {\tt model} implementation of the neuron model
+    \item {\tt density} implementation of the pde solver 
+    \item {\tt likelihood} connects the optimizer and the pde solver
+    \item {\tt montecarlo} implementation of monte carlo simulator
+    \item {\tt plotting} methods used to generate plots
+    \item {\tt util} methods to determine timing
+\end{itemize}
 
 The software uses the additional packages numpy, scipy for vector
 based and scientific computing, and pylab/matplotlib for plotting the
@@ -315,7 +345,7 @@ must be within a specific range of $0.1 - 0.05$, otherwise strange
 oscillatory instabilities occur. Among the possible causes, are a
 numerical instability in the finite differencing scheme, a bug in our
 code, a bug in the solver for the linear equations or the
-discretization of $P$ and $t$ being to large. 
+discretization of $V$ and $t$ being to large. 
 
 Currently the gradient of the objective function isn't implemented,
 and any gradient based optimizer would need to compute their
@@ -341,15 +371,16 @@ This section presents some plots.
 
 \begin{figure}[htp]
 \centering
-\includegraphics[scale=0.75]{P_vt}
+\includegraphics[scale=0.60]{P_vt}
 \caption{Density Evolution, Top = partial differential equation,
 Bottom = Monte Carlo method. X-Axis is time, Y-Axis is potential and
 should go from 0 to 1}
+\label{P_vt}
 \end{figure}
 
 \begin{figure}[htp]
 \centering
-\includegraphics[scale=0.75]{fpt.png}
+\includegraphics[scale=0.60]{fpt.png}
 \caption{First Passage Time, Green = partial differential equation,
 red = monte carlo, x-axis is time, y axis is probability. }
 \end{figure}
