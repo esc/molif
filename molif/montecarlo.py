@@ -20,7 +20,7 @@ def mc_P_vt_fpt():
     lif = lif_setup()
     lif.noise = True
 
-    num_replications = 500
+    num_replications = 5000
     final_t_max = 400
 
     pots = zeros((num_replications,final_t_max))

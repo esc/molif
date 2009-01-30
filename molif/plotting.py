@@ -10,7 +10,7 @@
 # http://sam.zoy.org/wtfpl/COPYING for more details. 
 
 from pylab import imshow, figure, plot, show, colorbar, hold, \
-xlabel, ylabel, legend
+xlabel, ylabel, legend, subplot
 from numpy import flipud, cumsum
 
 from density import *
@@ -50,7 +50,24 @@ def plot_mc_fpt():
     plot(fpt)
     show()
 
+def compare_pde_mc_P_vt():
 
+
+    pde_P_vt_val, pde_fpt_val = compute_pde_fpt()
+    mc_P_vt_val, traces, mc_fpt_val =  mc_P_vt_fpt()
+
+    subplot(2,1,1)
+    imshow(flipud(pde_P_vt_val[375:,:250]))
+    xlabel('time')
+    ylabel('P(V,t)')
+
+    subplot(2,1,2)
+    imshow(mc_P_vt_val[70:,:250])
+    xlabel('time')
+    ylabel('P(V,t)')
+
+    show()
+ 
 def compare_pde_mc_fpt():
     """ compare the partial differental equation and monte carlo first
     passage time """
@@ -77,4 +94,4 @@ def compare_pde_mc_fpt():
 
 
 if __name__ == '__main__':
-    compare_pde_mc_fpt()
+    compare_pde_mc_P_vt()
