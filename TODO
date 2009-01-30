@@ -6,7 +6,7 @@ check pydocs
 integrate Paninski 2008 into the general framework
 migrate the last piece of code from software/lnlif.py into molif
 package
-accelerate the optimizer
+accelerate the optimizer, for example TRIDAG
 debug the optimizer, generated parameters aren't fitted parameters
 i.e. the optimizer doesn't converge as we would expect it to
 the definition of I_hist isn't fully implemented
@@ -14,9 +14,5 @@ fix the implementation of the kernel
 fix the fact that the pde and mc fpt cdf aren't from the same
 distribution according to K-S test
 
-DOC
 
-finish description of how to compute the likelihood
-add some nice diagrams, like fpt P_vt and so on (don't forget labels)
-fix the "inserted $ bug" 
 

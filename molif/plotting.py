@@ -10,8 +10,9 @@
 # http://sam.zoy.org/wtfpl/COPYING for more details. 
 
 from pylab import imshow, figure, plot, show, colorbar, hold, \
-xlabel, ylabel, legend, subplot
+xlabel, ylabel, legend, subplot, title
 from numpy import flipud, cumsum
+from matplotlib import cm
 
 from density import *
 from model import *
@@ -57,14 +58,16 @@ def compare_pde_mc_P_vt():
     mc_P_vt_val, traces, mc_fpt_val =  mc_P_vt_fpt()
 
     subplot(2,1,1)
-    imshow(flipud(pde_P_vt_val[375:,:250]))
+    imshow(flipud(pde_P_vt_val[375:,:250]), cmap=cm.Greys_r)
     xlabel('time')
     ylabel('P(V,t)')
+    title('PDE')
 
     subplot(2,1,2)
-    imshow(mc_P_vt_val[70:,:250])
+    imshow(mc_P_vt_val[70:,:250], cmap=cm.Greys_r)
     xlabel('time')
     ylabel('P(V,t)')
+    title('Monte Carlo')
 
     show()
  
