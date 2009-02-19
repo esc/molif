@@ -54,7 +54,7 @@ def get_gauss_means(u1, v1, I):
         for t in xrange(s,n):
             mu1[t, s] =  np.prod(u1[s:t+1])
             for i in xrange(s+1,t):
-                prod = np.prod(u1[i+1:t+1])
+                prod = np.prod(u1[i:t+1])
                 mu2[t, s] +=  v1[i]*I[i]*prod
     return mu1, mu2
 
@@ -92,8 +92,8 @@ def FirstPassageInt(g, sigma, I, V_thr=1., V_reset=0., dt=0.1):
 
     sigma_sq[sigma_sq==0]=1
 
-    mu1, mu2 = get_gauss_means_vec(u1, v1, I)
-    #mu1, mu2 = get_gauss_means(u1, v1, I)
+    #mu1, mu2 = get_gauss_means_vec(u1, v1, I)
+    mu1, mu2 = get_gauss_means(u1, v1, I)
     
     ## Analytical calculation of sigma_sq for constant g, I
     #x = np.subtract.outer(np.arange(0, len(g)), np.arange(0, len(g)))*dt
@@ -113,6 +113,8 @@ def FirstPassageInt(g, sigma, I, V_thr=1., V_reset=0., dt=0.1):
     #3. fill in the matrices
     
     A = _get_gaussian(V_thr, V_thr)*dt
+    plt.pcolor(A)
+    plt.colorbar()
     b = _get_gaussian(V_thr, V_reset)[:,0]
     #print mu1, mu2
 
@@ -140,26 +142,27 @@ if __name__ == '__main__':
     #I = 0.5*np.random.randn(int(max_t)/dt)
     #I = 1*np.ones(int(max_t)/dt)
     
-    max_t = 20
-    dt = 0.1
-    g = 2.
-    sigma = 0.8
+    max_t = 5
+    dt = 0.05
+    g = 0.01
+    sigma = 0.1
     #I = 0.5*np.random.randn(int(max_t)/dt)
-    #I = 0.5*np.ones(np.ceil(max_t/dt), dtype=np.float32)
-    I = 1.*(-np.sin(np.linspace(0., 2*np.pi,np.ceil(max_t/dt)))+1)
+    I = 0.5*np.ones(np.ceil(max_t/dt), dtype=np.float32)
+    #I = 1.*(-np.sin(np.linspace(0., 2*np.pi,np.ceil(max_t/dt)))+1)
     t = np.arange(0, max_t, dt)
 
     p = FirstPassageInt(g*np.ones(len(I), dtype=np.float32), sigma, I, dt=dt)
     dt_mc = 0.01
-    I_mc = 1.*(-np.sin(np.linspace(0., 2*np.pi,np.ceil(max_t/dt_mc)))+1)
-    t_mc, p_mc = FirstPassageMC(NLIF, (g, sigma, I_mc), V_thr=1,
-            dt=dt_mc, max_t=max_t, n_trials=2E4)
+    I_mc = 0.5*np.ones(np.ceil(max_t/dt_mc), dtype=np.float32)
+    #I_mc = 1.*(-np.sin(np.linspace(0., 2*np.pi,np.ceil(max_t/dt_mc)))+1)
+    #t_mc, p_mc = FirstPassageMC(NLIF, (g, sigma, I_mc), V_thr=1,
+    #        dt=dt_mc, max_t=max_t, n_trials=2E4)
 
     plt.figure()
     plt.subplot(211)
     plt.plot(t, p, 'r-')
-    plt.plot(t_mc, p_mc/dt_mc, 'b-')
-    #plt.legend(("Integral eq", "Monte-Carlo", "wiener"))
+    #plt.plot(t_mc, p_mc/dt_mc, 'b-')
+    #plt.legend(("Integral eq", "Monte-Carlo"))
     plt.subplot(212)
     plt.plot(t, I)
     plt.show()

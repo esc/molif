@@ -11,8 +11,9 @@
 
 from util import *
 from model import *
+from integral import FirstPassageInt
 
-from numpy import diff, shape
+from numpy import diff, shape, ones, arange, concatenate
 from scipy import sparse, linsolve
 
 class pde_solver(object):
@@ -85,10 +86,10 @@ class pde_solver(object):
         """ turn the density evolution into an first passage time
         Differentiat w.r.t. time the integral w.r.t. Potential
         """
-        return diff(P_vt.sum(axis=0)) * -1.0
+        return concatenate(([0], diff(P_vt.sum(axis=0)) * -1.0))
 
     #@print_timing
-    def pde_interval(self,start,end):
+    def pde_interval(self, start, end):
         """ compute the density evolution for the given interval """
         # length of the time interval
         U = end-start
@@ -160,8 +161,26 @@ def compute_pde_fpt():
     p = pde_solver(lif,500,-3.0,debug=False)
     P_vt = p.pde_interval(0,400)
     fpt = p.P_vt_to_fpt(P_vt)
-    return P_vt, fpt
+    time = arange(len(fpt))*lif.dt
+    return time, fpt/lif.dt
+
+def compute_integral_fpt():
+    """ compute the first passage time using pde"""
+    print "computing partial differentail equation based first \
+    passage time now"
+    lif = lif_setup()
+    sigma = lif.sigma
+    current = lif.stim[::5]
+    g_cond = lif.g*ones(len(current))
+    v_thr = lif.V_threshold
+    V_reset = lif.V_reset
+    dt = lif.dt*5
+    fpt = FirstPassageInt(g_cond, sigma, current, v_thr, V_reset, dt)
+    print lif.g, sigma, current, v_thr, V_reset
+    time = arange(len(current))*dt
+    return time, fpt
 
 if __name__ == '__main__':
-    pass
+    #compute_pde_fpt()
+    compute_integral_fpt()
 
