@@ -152,13 +152,13 @@ if __name__ == '__main__':
     p = FirstPassageInt(g*np.ones(len(I), dtype=np.float32), sigma, I, dt=dt)
     dt_mc = 0.01
     I_mc = 1.*(-np.sin(np.linspace(0., 2*np.pi,np.ceil(max_t/dt_mc)))+1)
-    t_mc, p_mc = FirstPassageMC(NLIF, (g, sigma, I_mc), V_thr=1,
-            dt=dt_mc, max_t=max_t, n_trials=2E4)
+    #t_mc, p_mc = FirstPassageMC(NLIF, (g, sigma, I_mc), V_thr=1,
+    #        dt=dt_mc, max_t=max_t, n_trials=2E4)
 
     plt.figure()
     plt.subplot(211)
     plt.plot(t, p, 'r-')
-    plt.plot(t_mc, p_mc/dt_mc, 'b-')
+    #plt.plot(t_mc, p_mc/dt_mc, 'b-')
     #plt.legend(("Integral eq", "Monte-Carlo", "wiener"))
     plt.subplot(212)
     plt.plot(t, I)
