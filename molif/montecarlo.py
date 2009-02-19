@@ -11,7 +11,7 @@
 
 from util import * 
 from model import *
-from numpy import nan, histogram, array , rot90
+from numpy import nan, histogram, array , rot90, isnan
 
 
 def mc_P_vt_fpt():
@@ -34,20 +34,25 @@ def mc_P_vt_fpt():
         time, potential = \
         lif.euler(lif.V_reset,quit_after_first_spike=True)
         # now bin the potential 
-        for j in xrange(len(potential)):
-            pots[i,j] = potential[j]
+        #for j in xrange(len(potential)):
+        #    pots[i,j] = potential[j]
+
+        pots[i,:len(potential)] = potential
         #and the fpt
         traces.append(potential)
         fpt[len(time)] += 1
 
     # make one histogram for each time step
-    V_range=arange(0,1,0.005)
-    P_vt = [ histogram(pots[:,i],bins=V_range)[0] for i in \
+    # WARNING THIS FITS EXACTLY THE PARAMETERS OF PDE SOLVER
+    # DO NOT TOUCH THIS !!! EVER !!!
+    V_range=arange(-3,1,4./500)
+    P_vt = [ histogram(pots[~isnan(pots[:,i]),i],bins=V_range)[0] for i in \
             xrange(final_t_max)]
     P_vt = array(P_vt)
     # chop off top and bottom row, cause, they skew the colors
     # rot 90, to prepare for imshow()
     P_vt = rot90(P_vt)[1:-2,:]
+    P_vt = (1.0* P_vt)/num_replications
 
     return P_vt, traces, fpt
 

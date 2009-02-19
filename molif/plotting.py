@@ -18,7 +18,7 @@ from density import *
 from model import *
 from montecarlo import *
 
-def pde_density_and_fpt():
+def plot_pde_P_vt_fpt():
     """ calculate and plot density evolution and and first passage time. """
     P_vt, fpt = compute_pde_fpt()
     imshow(flipud(P_vt))
@@ -58,13 +58,15 @@ def compare_pde_mc_P_vt():
     mc_P_vt_val, traces, mc_fpt_val =  mc_P_vt_fpt()
 
     subplot(2,1,1)
-    imshow(flipud(pde_P_vt_val[375:,:250]), cmap=cm.Greys_r)
+    imshow(flipud(pde_P_vt_val[375:,:250]),extent=(0.0,250.0,0.0,1.0), aspect='auto')
+    colorbar()
     xlabel('time')
     ylabel('P(V,t)')
     title('PDE')
 
     subplot(2,1,2)
-    imshow(mc_P_vt_val[70:,:250], cmap=cm.Greys_r)
+    imshow(mc_P_vt_val[:125,:250],extent=(0.0,250.0,0.0,1.0), aspect='auto')
+    colorbar()
     xlabel('time')
     ylabel('P(V,t)')
     title('Monte Carlo')
