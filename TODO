@@ -1,18 +1,29 @@
-CODE
-
 pylint  the code
+
 write at least some unit tests
+
 check pydocs
+
 integrate Paninski 2008 into the general framework
+
 migrate the last piece of code from software/lnlif.py into molif
 package
+
 accelerate the optimizer, for example TRIDAG
+
 debug the optimizer, generated parameters aren't fitted parameters
+
 i.e. the optimizer doesn't converge as we would expect it to
+
 the definition of I_hist isn't fully implemented
+
 fix the implementation of the kernel
+
 fix the fact that the pde and mc fpt cdf aren't from the same
 distribution according to K-S test
+
+write accessor methods for the model, so that all time dep vectors such as i and
+h are automatically regenerted
 
 
 
