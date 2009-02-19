@@ -12,10 +12,10 @@
 from util import *
 from model import *
 
-from numpy import diff
+from numpy import diff, shape
 from scipy import sparse, linsolve
 
-class pde_solver():
+class pde_solver(object):
     def __init__(self,lif,W,V_lb,debug=False):
         """ compute the density evolution for a lif model
 
@@ -34,7 +34,7 @@ class pde_solver():
         self.V_lb = V_lb
         self.debug = debug
         # Lambda is our tridiagonal matrix in each iteration step
-        self.Lambda = sparse.lil_matrix((self.W,self.W))
+        self.Lambda = sparse.lil_matrix((self.W+1,self.W+1))
         # coefficients of the terms in the Fokker-Planck equation
         self.a = self.lif.sigma**2/2
         self.c = self.lif.g
@@ -56,7 +56,7 @@ class pde_solver():
         self.V_reset_index = abs(self.V_values - lif.V_reset).argmin()  
         if self.debug: print "V_reset_index" , self.V_reset_index
         # Lambda * chi = beta
-        self.beta = zeros(W)
+        self.beta = zeros(W+1)
 
     def compute_product_fpt(self):
         """ compute the product of all fpts for all spike intervals
@@ -94,7 +94,7 @@ class pde_solver():
         # length of the time interval
         U = end-start
         # final density matrix for this interval
-        P_vt = zeros((self.W,U))
+        P_vt = zeros((self.W+1,U))
         # set initial value
         if self.debug : 
             print "W" , self.W
@@ -106,9 +106,9 @@ class pde_solver():
             # V_rest as defined by lif
             V_rest = self.lif.V_rest(start+t);
             # A B and C diagonals of Lambda
-            A = zeros(self.W-1)
-            B = zeros(self.W)
-            C = zeros(self.W-1)
+            A = zeros(self.W)
+            B = zeros(self.W+1)
+            C = zeros(self.W)
             # first we set the top boundary conditions
             # P(V_th,t) = 0 
             # i.e. the top row of the matrix
@@ -118,31 +118,37 @@ class pde_solver():
             # now we go and fill the matrix in
             a,b,c,u,w = self.a, self.b, self.c, self.u, self.w
 
-            b_array = self.lif.g * ((self.V_values[:-2] + \
-                self.V_values[1:-1])/2 -V_rest)
+            #b_array = self.lif.g * ((self.V_values[:-2] + \
+            #    self.V_values[1:-1])/2 -V_rest)
+            
+            b_array = self.lif.g * (self.V_values/2 -V_rest)
             
             #here we scrapped the for loop, yes!
             #but scrapped readability, no!
-            A[1:]= -(2*a*u + b_array*w*u)
+            A[1:]= -(2*a*u + b_array[1:]*w*u)
 
             B[1:-1] = ((4*a*u) - (2*c*w**2*u) + (4*w**2))
 
-            C[:-1]= -(2*a*u - b_array*w*u)
+            C[:-1]= -(2*a*u - b_array[:-1]*w*u)
             
-            self.beta[1:-1] = (2*a*u + b_array[:]*w*u) * P_vt[2:,t] + \
+            self.beta[1:-1] = (2*a*u + b_array[1:]*w*u) * P_vt[2:,t] + \
                 (-4*a*u + 2*c*w**2*u + 4*w**2) * P_vt[1:-1,t] +   \
-                (2*a*u - b_array[:]*w*u) * P_vt[:-2,t]
-
+                (2*a*u - b_array[:-1]*w*u) * P_vt[:-2,t]
 
             # now we need to fill in the last row, which are the lower
             # boundary conditions, i.e. P(V_lb,t) = 0
-            C[self.W-2] = 0
-            B[self.W-1] = 1
-            self.beta[self.W-1] = 0
+            C[self.W-1] = 0
+            B[self.W] = 1
+            self.beta[self.W] = 0
             # now we set the diagonals of the tridiagonal matrix
             self.Lambda.setdiag(A,1)
             self.Lambda.setdiag(B)
             self.Lambda.setdiag(C,-1)
+
+            # cut out inner square
+
+            tmp = self.Lambda.todense()
+            Lambda2 = sparse.lil_matrix(tmp[1:-1,1:-1])
 
             
             if self.debug: 
@@ -150,15 +156,17 @@ class pde_solver():
                 print "B :" , B
                 print "C :" , C
                 print "Lambda: " , self.Lambda.todense()
+                print "Lambda22: " , Lambda2.todense()
                 print "beta: " , self.beta
             
-            chi = linsolve.spsolve(self.Lambda,self.beta)
+            #chi = linsolve.spsolve(self.Lambda,self.beta)
+            chi = linsolve.spsolve(Lambda2,self.beta[1:-1])
 
             if self.debug: 
                 print "chi:" , chi
                 print "sumchi", chi.sum()
 
-            P_vt[:,t+1] = chi[:]
+            P_vt[1:-1,t+1] = chi[:]
 
             if self.debug: print "P_vt: ", P_vt
 
@@ -167,14 +175,13 @@ class pde_solver():
 @print_timing
 def compute_pde_fpt():
     """ compute the first passage time using pde"""
-    print "computing partial differentail equation based first \
+    print "computing partial differential equation based first \
     passage time now"
     lif = lif_setup()
     p = pde_solver(lif,500,-3.0,debug=False)
     P_vt = p.pde_interval(0,400)
     fpt = p.P_vt_to_fpt(P_vt)
     return P_vt, fpt
-
 
 if __name__ == '__main__':
     pass
