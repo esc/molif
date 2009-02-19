@@ -11,7 +11,7 @@
 
 from util import * 
 from model import *
-from numpy import nan, histogram, array , rot90
+from numpy import nan, histogram, array , rot90, arange
 
 
 def mc_P_vt_fpt():
@@ -54,22 +54,28 @@ def mc_P_vt_fpt():
 
 
 @print_timing
-def mc_fpt(reps=500,t_max=400):
+def compute_mc_fpt(reps=500,t_max=400):
     """ compute only first passage time using monte carlo """
     print "computing monte carlo based first passage time now"
     print "using" , reps,"replications "
     lif = lif_setup()
     lif.noise = True
 
-    fpt = zeros(t_max)
+    n_steps = len(lif.stim)
+    fpt = zeros(n_steps)
+    spike_times = []
 
     for i in xrange(reps):
         if i%100 == 0 : print i
         time, potential = \
         lif.euler(lif.V_reset,quit_after_first_spike=True)
-        fpt[len(time)] += 1
+        if len(time) < n_steps:
+            fpt[len(time)] += 1
+            spike_times.append(time[-1])
 
-    return fpt/reps
+    time = arange(n_steps)*lif.dt
+
+    return time, fpt/reps/lif.dt, array(spike_times)
 
 
 if __name__ == '__main__':

@@ -13,6 +13,7 @@ from pylab import imshow, figure, plot, show, colorbar, hold, \
 xlabel, ylabel, legend, subplot, title
 from numpy import flipud, cumsum
 from matplotlib import cm
+from scipy import interpolate
 
 from density import *
 from model import *
@@ -74,27 +75,38 @@ def compare_pde_mc_P_vt():
 def compare_pde_mc_fpt():
     """ compare the partial differental equation and monte carlo first
     passage time """
+    lif = lif_setup()
+    n_repetitions = 5000
 
-    mc_fpt_val = mc_fpt(reps=5000)
-    P_vt, pde_fpt = compute_pde_fpt()
+    mc_time, mc_fpt, spike_times = compute_mc_fpt(reps=n_repetitions)
+    pde_time, pde_fpt = compute_pde_fpt()
+    #integral_time, integral_fpt = compute_integral_fpt()
+    
+    mc_fpt = mc_fpt[:len(pde_fpt)]
+    mc_time = mc_time[:len(pde_fpt)]
 
-    D,p = stats.ks_2samp(mc_fpt_val,pde_fpt)
-    print "K-S test D value: " , D
-    print "K-S test p value: " , p
-    plot(mc_fpt_val,'r',label='Monte Carlo')
-    plot(pde_fpt,'g',label='PDE Solver')
+    plot(mc_time, mc_fpt,'rx',label='Monte Carlo')
+    plot(pde_time, pde_fpt,'gx',label='PDE Solver')
+    #plot(integral_time, integral_fpt/5.,'b',label='Integral')
     xlabel('time')
     ylabel('fpt')
     legend()
 
+    cdf = interpolate.interp1d(pde_time, cumsum(pde_fpt)*lif.dt)
+    D, p = stats.kstest(spike_times, cdf)
+    print "K-S test D value: " , D
+    print "K-S test p value: " , p
 
+
+    [n, bins] = histogram(spike_times, 100)
+    mc_cdf = cumsum(n)*1./n_repetitions
     figure()
-
-    plot(cumsum(mc_fpt_val),'r')
-    plot(cumsum(pde_fpt),'g')
+    
+    plot(bins[:-1], mc_cdf,'b')
+    plot(pde_time, cdf(pde_time),'g')
     show()
 
 
 
 if __name__ == '__main__':
-    compare_pde_mc_P_vt()
+    compare_pde_mc_fpt()
