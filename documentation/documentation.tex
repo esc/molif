@@ -1,3 +1,4 @@
+% vim: set spell spelllang=en
 \documentclass[10pt]{article}
 \usepackage[pdftex]{graphicx}
 \usepackage{amssymb, amsmath}
@@ -8,7 +9,7 @@
 \setlength{\parskip}{\baselineskip}
 
 \title{Implementation of the Density Evolution method with
-Fokker-Plank for L-NLIF Model in Python}
+Fokker-Planck for L-NLIF Model in Python}
 \author{Valentin Haenel \\
 valentin.haenel@gmx.de \\
 BCCN Berlin}
@@ -30,6 +31,12 @@ neuron using a model of the input and extracellularly recorded spikes.
 Primarily this involved solving a partial differential equation and constructing
 a maximum likelihood objective function. 
 
+This project is motivated by the fact that recording intracellularly from awake
+behaving animals is usually not possible, and extracellularly recorded spike
+trains are much more common in this setting. The model implemented allows us to
+gain at least some partial insight into the subthreshold voltage of such
+neurons. A further motivation comes from the fact, that algorithms described are
+not publicly available in the form of an easy to use software package. 
 
 \section{Model}
 The original model is a L-NLIF model, which consists of a Linear
@@ -79,7 +86,7 @@ following Fokker-Planck drift diffusion equation numerically.
 \end{equation}
 
 We will be solving the evolution of the probability density for a
-given inter spike interval(ISI). And therefor we will constrain the range
+given inter spike interval(ISI). And therefore we will constrain the range
 of $V$ and $t$.
 \begin{equation}
     P(V_{th},t) = 0
@@ -108,33 +115,34 @@ Ideally $V_{lb} = -\infty $.
 $V_{rest}$ is defined as the stationary point of the noiseless
 subthreshold dynamics:
 \begin{equation}
-    V_{rest}(t) = V_{leak} + \frac{1}{g}(\vec{k} \cdot \vec{x}(t)
+    V_{rest}(t) = V_{leak} + \frac{1}{g}(\vec{k} \cdot \vec{x}(t) +
     \sum_{j=0}^{i-1}h(t-t_j))
 \end{equation}
 
-
-We can rewrite (\ref{fokkerplanck}) as:
-\begin{equation}
-    \frac{\sigma^2}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
-    g(V-V_{rest})\frac{\partial P(V,t)}{\partial V} +
-    gP(V,t) -
-    \frac{\partial P(V,t)}{\partial t} = 
-    0
-\end{equation}
-Since we know that:
-\begin{equation}
-    \frac{\partial[(V-V_{rest})P(V,t)]}{\partial V} =
-    \frac{\partial (V-V_{rest})}{\partial V}  P +
-    \frac{\partial P}{\partial V} (V-V_{rest})
-\end{equation}
-and
-\begin{equation}
-    \frac{\partial (V-V_{rest})}{\partial V} = 1
-\end{equation}
+% This was just wasting space
+%
+%We can rewrite (\ref{fokkerplanck}) as:
+%\begin{equation}
+%    \frac{\sigma^2}{2} \frac{\partial^2 P(V,t) } {\partial V^2} +
+%    g(V-V_{rest})\frac{\partial P(V,t)}{\partial V} +
+%    gP(V,t) -
+%    \frac{\partial P(V,t)}{\partial t} = 
+%    0
+%\end{equation}
+%Since we know that:
+%\begin{equation}
+%    \frac{\partial[(V-V_{rest})P(V,t)]}{\partial V} =
+%    \frac{\partial (V-V_{rest})}{\partial V}  P +
+%    \frac{\partial P}{\partial V} (V-V_{rest})
+%\end{equation}
+%and
+%\begin{equation}
+%    \frac{\partial (V-V_{rest})}{\partial V} = 1
+%\end{equation}
 
 \subsubsection{Finite Differencing}
 
-In order to solve (\ref{fokkerplanck}) numerically we discretize time
+In order to solve (\ref{fokkerplanck}) numerically we discretized time
 and potential. We adopt the notation that Potential is discretized
 into $W$ intervals of length $w$ and indexed
 by $\nu= 0,1, \dots W $.  Time is discretized  into $U$ intervals of
@@ -143,17 +151,17 @@ We adopt the notation: $P_{\nu,\tau} = P(\nu w,\tau u)$
 
 A forward finite differencing scheme would like:
 \begin{eqnarray}
-    \hat{P} =& P_{\nu,\tau} \\
+    \hat{P}(v,t) =& P_{\nu,\tau}\\
 %
-    \frac{\partial \hat{P}}{\partial t} =& \frac{P_{\nu,\tau +1 } -
+\frac{\partial \hat{P}(v,t)}{\partial t} =& \frac{P_{\nu,\tau +1 } -
     P_{\nu,\tau}}{u} \\
 %
-    \frac{\partial \hat{P}}{\partial V} =& 
+    \frac{\partial \hat{P}(v,t)}{\partial V} =& 
     \frac{P_{\nu +1,\tau } -
     P_{\nu - 1,\tau } }
-    {2w} \\
+    {2w} \\ 
 %
-    \frac{\partial^2 \hat{P}}{\partial V^2} =& 
+    \frac{\partial^2 \hat{P}(v,t)}{\partial V^2} =& 
     \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau}}
     {w^2} 
 \end{eqnarray}
@@ -164,17 +172,17 @@ We rewrite the derivatives using the new scheme which is centered around $t +
 u/2$.
 
 \begin{eqnarray}
-    P_{CN} =& \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2} \\
+    P_{CN}(v,t) =& \frac{P_{\nu,\tau} + P_{\nu,\tau + 1}}{2} \\
     %
-    \frac{\partial P_{CN}}{\partial t} =& \frac{P_{\nu,\tau +1 } -
+    \frac{\partial P_{CN}(v,t)}{\partial t} =& \frac{P_{\nu,\tau +1 } -
     P_{\nu,\tau}}{u} \\
     %
-    \frac{\partial P_{CN}}{\partial V} =&
+    \frac{\partial P_{CN}(v,t)}{\partial V} =&
     \frac{P_{\nu +1,\tau } + P_{\nu +1,\tau +1 } -
     P_{\nu - 1,\tau } - P_{\nu -1,\tau +1}} 
     {4w} \\
     %
-    \frac{\partial^2 P_{CN}}{\partial V^2} =&
+    \frac{\partial^2 P_{CN}(v,t)}{\partial V^2} =&
     \frac{P_{\nu+1,\tau} - 2 P_{\nu,\tau} + P_{\nu-1,\tau} +
     P_{\nu+1,\tau+1} - 2 P_{\nu,\tau+1} + P_{\nu-1,\tau+1}}
     {2w^2} 
@@ -207,37 +215,37 @@ we may now rewrite in the following tridiagonal matrix notation.
 \begin{equation}
 \underbrace{
 \begin{pmatrix}
-    B_0    & A_0   & 0      & 0      & \cdots  & 0       \\
-    C_1    & B_1   & A_1    & 0      & \cdots  & 0       \\
-    0      & C_2   & B_2    & A_2    & 0      &         \\
-    \vdots &       & \ddots & \ddots & \ddots & \vdots  \\
-    0      & \cdots & 0      & C_{W-1}& B_{W-1}& A_{W-1} \\
-    0      & \cdots &        & 0      & C_W    & B_W     \\
+    & B_1   & A_1    & 0      & \cdots   \\
+    & C_2   & B_2    & A_2    & 0        \\
+    &       & \ddots & \ddots & \ddots   \\
+    & \cdots & 0      & C_{W-1}& B_{W-1} \\
 \end{pmatrix}}_{\Lambda}
 \underbrace{
 \begin{pmatrix}
-    P_{0,\tau+1}   \\
     P_{1,\tau+1}   \\
     P_{2,\tau+1}   \\
     \vdots         \\
     P_{W-1,\tau+1} \\
-    P_{W,\tau+1}   \\
 \end{pmatrix}}_{\chi}
 =
 \underbrace{
 \begin{pmatrix}
-    D_0     \\
     D_1     \\
     D_2     \\
     \vdots  \\
     D_{W-1} \\
-    D_W     \\
 \end{pmatrix}}_{\beta}
 \end{equation}
 
-However this matrix equation has W+1 equations, so we must use the
-boundary conditions (\ref{boundarytop}) and
-(\ref{boundarybottom}) to specify the first and last rows of $\Lambda$.
+Since our boundary conditions are absorbing, we need not worry about them at
+all. Although we should note that  in the final solution matrix $P(v,t)$ there
+are $W+1$ rows, where the top and bottom row are always zero, which correspond
+exactly to the boundary conditions.
+
+%However this matrix equation has W+1 equations, so we must use the
+%boundary conditions (\ref{boundarytop}) and
+%(\ref{boundarybottom}) to specify the first and last rows of $\Lambda$.
+
 We can then use a tridiagonal matrix algorithm to solve $\Lambda \chi
 = \beta$. This allows us to iteratively obtain the density evolution $P(V,t)$ of the
 membrane potential for a given ISI. Where the initial $\beta$ for an ISI is given by
@@ -253,12 +261,10 @@ The maximum likelihood optimizer proposed in
 \cite{PaninskiPillowSimoncelli} however uses the first passage time
 density at a given time point which is defined as:
 
-\begin{equation}
-    fpt(t) = -\frac{\partial}{\partial t} \int P(V,t)dV
-\end{equation}
+    FPT$(t)  = -\frac{\partial}{\partial t} \int P(V,t)dV $
 
-and this can be easily computed from an $P(V,t)$ matrix by summing
-across $P$ and finding differences across $t$.
+and this can be easily computed from a $P(V,t)$ matrix by a finite differences
+/ sums scheme.
 
 \subsection{Maximum Likelihood Estimator}
 
@@ -279,9 +285,9 @@ The pseudocode for the objective function can be described as follows:
 for each spike interval do:
 \begin{enumerate}
     \item compute $P(V,t)$ as matrix
-    \item compute $fpt$ as vector
+    \item compute FPT$(t)$ as vector
 \end{enumerate}
-return the product of the last scalars in the $fpt$ vectors.}
+return the product of the last scalars in the FPT vectors.}
 
 This objective function could be presented to a standard numerical
 optimizer, for example the Nelder-Mead Downhill simplex \cite{press},
@@ -290,17 +296,18 @@ this needs no gradients and is fairly robust but slow.
 \subsection{Monte Carlo Method}
 
 To double check the results of the PDE Solver and the resulting First
-Passage Time , we additionally implemented some basic monte carlo
-simulations. This did not involve much more than simulating a few
-thousand single spike runs of our model, with noise. The resulting
-potential traces, and spike times were used to obtain both $P(V,t)$
-and $fpt$. The density evolution is compared qualitatively and the
-$fpt$ is compared using a Kolmogorov-Smirnov (K-S) test\cite{press}.
+Passage Time, we additionally implemented some basic Monte Carlo
+simulations. The basic idea is to simulate a few thousand traces of the neuron
+up to the first spike, with noise. The resulting potential traces, and spike
+times were used to obtain both $P(V,t)$ and $fpt$. The density evolution is
+compared qualitatively to the density evolution technique as can bee seen in:
+\ref{P_vt}. The FPT is compared using a Kolmogorov-Smirnov (K-S)
+test\cite{press}.
 
 
 \section{Implementation}
 
-This section describes the concrete implemenation
+This section describes the concrete implementation
 
 \subsection{Availability and Design}
 
@@ -317,9 +324,9 @@ the package {\tt molif}
 
 \begin{itemize}
     \item {\tt model} implementation of the neuron model
-    \item {\tt density} implementation of the pde solver 
-    \item {\tt likelihood} connects the optimizer and the pde solver
-    \item {\tt montecarlo} implementation of monte carlo simulator
+    \item {\tt density} implementation of the PDE solver 
+    \item {\tt likelihood} connects the optimizer and the PDE solver
+    \item {\tt montecarlo} implementation of Monte Carlo simulator
     \item {\tt plotting} methods used to generate plots
     \item {\tt util} methods to determine timing
 \end{itemize}
@@ -352,7 +359,7 @@ and any gradient based optimizer would need to compute their
 approximation from the function values. 
 
 We used a Kolmogorov-Smirnov (K-S) test to check that the first
-passage time computed by the pde-solver and the monte carlo method
+passage time computed by the PDE-solver and the Monte Carlo method
 come from the same distribution. However the test currently returns a
 negative result, although at first glance the distributions look very
 similar. 
@@ -361,17 +368,19 @@ Lastly we should mention that the objective function isn't fully
 operational yet. A simple test is executed as follows: first we
 generate some spikes with given parameters, and then we attempt to fit
 parameters to these spikes. If the code operates correctly the
-optimizer should not deviate away from the initial paramters vector.
+optimizer should not deviate away from the initial parameters vector.
 However currently this is not the case and the optimizer finds a
 minimum at a different position in parameter space.
 
-\subsection{Images}
+\subsection{Results}
 
 This section presents some plots.
 
-Figure \ref{P_vt} shows the comparison of PDE Solver and Monte Carlo
-method when computing the density evolution. The slight difference in angle may,
-unfortunately, be a bug in the code.
+Figure \ref{P_vt} shows a comparison of PDE Solver (top) and Monte Carlo
+(bottom) method when computing the density evolution. As expected the two plots
+look the same, and corresponds very nicely to what we would expect from the
+iterative solution to a Fokker-Planck equation. The drift term is responsible for
+the shift of the mean, and the diffusion is responsible for the flattening. 
 
 Figure \ref{fpt} shows the comparison of the PDE Solver and Monte
 Carlo method when computing the first passage time. Unfortunately a
@@ -393,9 +402,9 @@ first glance.
 \label{fpt}
 \end{figure}
 
-\subsection{Conclusion}
+\section{Conclusion}
 
-Not all of the initial Porject Goals were reached to my full
+Not all of the initial Project Goals were reached to my full
 satisfaction. We did implement an Integrate and Fire
 neuron, and a method to fit the parameters, however we did not get as
 far as actually fitting real experimental data. None the less 
