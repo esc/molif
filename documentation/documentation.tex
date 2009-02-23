@@ -22,11 +22,11 @@ BCCN Berlin}
 
 This report is a description of the work done by Valentin Haenel
 for a Lab Rotation within the Bernstein Center for Computational
-Neuroscience in Berlin. The rotation was completed in the lab of Gabriel
-Curio under the supervision of Bartosz Telenczuck. 
+Neuroscience in Berlin. The rotation was completed under the
+supervision of  Gabriel and Bartosz Telenczuk. 
 
 Throughout the project I have implemented a variant of the Leaky
-Integrate and Fire Neuron(LIF), and a method to fit the parameters of this
+Integrate and Fire Neuron (LIF), and a method to fit the parameters of this
 neuron using a model of the input and extracellularly recorded spikes.
 Primarily this involved solving a partial differential equation and constructing
 a maximum likelihood objective function. 
@@ -41,7 +41,7 @@ not publicly available in the form of an easy to use software package.
 \section{Model}
 The original model is a L-NLIF model, which consists of a Linear
 (L) Filter, followed by a probabilistic or Noisy (N) form of Leaky
-Integrate and Fire spike generation(LIF) (Paninski et
+Integrate and Fire spike generation (LIF) (Paninski et
 al.\cite{PaninskiPillowSimoncelli}). For sake of completeness the
 model is briefly described here.
 
@@ -62,8 +62,6 @@ standard Gaussian white noise. More precisely:
 Where $k$ is a linear filter and $h$ is a fixed postspike current waveform. 
 
 \section{Algorithms}
-
-This section describes the algorithms employed.
 
 \subsection{PDE Solver}
 
@@ -86,7 +84,7 @@ following Fokker-Planck drift diffusion equation numerically.
 \end{equation}
 
 We will be solving the evolution of the probability density for a
-given inter spike interval(ISI). And therefore we will constrain the range
+given inter-spike interval (ISI). And therefore we will constrain the range
 of $V$ and $t$.
 \begin{equation}
     P(V_{th},t) = 0
@@ -101,7 +99,7 @@ Condition (\ref{boundarytop}) ensures that the probability of obtaining a spike
 during an ISI is zero. Condition (\ref{boundaryleft}) ensures
 that at the beginning of an ISI, i.e. at the time of the last spike,
 the probability of the neuron being at reset potential is exactly one.
-Thereby we have obtained the constraints for the top and the left had
+Thereby we have obtained the constraints for the top and the left hand
 side of our solution grid, however, when solving numerically we also
 need a lower bound on the voltage $V_{lb}$, so this becomes an
 additional boundary condition, for the  bottom:
@@ -167,7 +165,7 @@ A forward finite differencing scheme would like:
 \end{eqnarray}
 
 However as suggested in \cite{PaninskiHaithSzirtes} we will use the
-computationally more stable Crank-Nicolson scheme\cite{press}.  
+computationally more stable Crank-Nicolson scheme \cite{press}.  
 We rewrite the derivatives using the new scheme which is centered around $t +
 u/2$.
 
@@ -210,8 +208,11 @@ we may rearrange all the $P_{*,\tau+1} $ terms on the left hand side:
 \end{multline}
 For each $ \nu = 1 , \dots , W-1 $
 
-Using (\ref{rearrange}) we have obtained $W-1$ simultaneous equations which
-we may now rewrite in the following tridiagonal matrix notation.
+Using (\ref{rearrange}) and incorporating the boundary conditions
+\ref{boundarytop} and \ref{boundaryleft} we have obtain a complete system 
+of $W-1$ linear equations which we may now rewrite in the following
+tridiagonal matrix notation.
+
 \begin{equation}
 \underbrace{
 \begin{pmatrix}
@@ -237,15 +238,6 @@ we may now rewrite in the following tridiagonal matrix notation.
 \end{pmatrix}}_{\beta}
 \end{equation}
 
-Since our boundary conditions are absorbing, we need not worry about them at
-all. Although we should note that  in the final solution matrix $P(v,t)$ there
-are $W+1$ rows, where the top and bottom row are always zero, which correspond
-exactly to the boundary conditions.
-
-%However this matrix equation has W+1 equations, so we must use the
-%boundary conditions (\ref{boundarytop}) and
-%(\ref{boundarybottom}) to specify the first and last rows of $\Lambda$.
-
 We can then use a tridiagonal matrix algorithm to solve $\Lambda \chi
 = \beta$. This allows us to iteratively obtain the density evolution $P(V,t)$ of the
 membrane potential for a given ISI. Where the initial $\beta$ for an ISI is given by
@@ -261,7 +253,10 @@ The maximum likelihood optimizer proposed in
 \cite{PaninskiPillowSimoncelli} however uses the first passage time
 density at a given time point which is defined as:
 
-    FPT$(t)  = -\frac{\partial}{\partial t} \int P(V,t)dV $
+\begin{equation}
+    \mathrm{FPT}(t)  = -\frac{\partial}{\partial t} \int P(V,t)dV 
+    \label{eq:fpt}
+\end{equation}
 
 and this can be easily computed from a $P(V,t)$ matrix by a finite differences
 / sums scheme.
@@ -273,7 +268,7 @@ Passage Time
 The final likelihood is then simply
 
 \begin{equation}
-    L_{\vec{x},t_{i}} = \Pi_{i} fpt(t_{i})
+    L_{\vec{x},t_{i}} = \prod_{i} \mathrm{FPT}(t_{i})
 \end{equation}
 
 This is the product of the first passage time at the times of
