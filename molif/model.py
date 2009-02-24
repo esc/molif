@@ -134,7 +134,7 @@ class lnlif:
 
 def lif_setup():
     """ initialize nueron model with dsome efault parameters """
-    lif = lnlif(dt=0.05) # init model
+    lif = lnlif(dt=0.01) # init model
     lif.set_const_input(0.5); # set constant input
     #lif.set_rand_input()
     lif.i_stim = lif.stim # setup stimulus
@@ -143,7 +143,7 @@ def lif_setup():
     lif.set_const_h()
     lif.V_leak = 0.0
     #lif.g = 0
-    lif.sigma = 0.5
+    lif.sigma = 0.1
 
     time, potential = \
     lif.euler(lif.V_reset,quit_after_first_spike=False)

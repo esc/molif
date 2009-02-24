@@ -39,7 +39,10 @@ def plot_mc_P_vt_fpt():
 
     figure()
     hold(True)
-    for t in traces:  plot(t)
+    for t in traces:
+        plot(t)
+    xlabel('time')
+    ylabel('V(t)')
 
     figure()
     plot(fpt)
@@ -111,4 +114,5 @@ def compare_pde_mc_fpt():
 
 
 if __name__ == '__main__':
-    compare_pde_mc_fpt()
+    #compare_pde_mc_fpt()
+    plot_mc_P_vt_fpt()
